@@ -38,6 +38,26 @@ def flatten(x, num_instances=0):
         x_vecs.append(v[0]/255.0)
     return np.array(x_vecs)
 
+def dataset_normalize(train, test):
+    x_train, y_train = train
+    x_test, y_test = test
+
+    x_train = x_train / np.float32(255)
+    x_test = x_test / np.float32(255)
+    y_train = y_train.astype(np.int64)
+    y_test = y_test.astype(np.int64)
+
+    dataset = {
+        'x_train' : x_train,
+        'y_train' : y_train,
+        'x_test' : x_test,
+        'y_test' : y_test
+    }
+
+    return dataset
+
+
+
 def partition(x_input_vecs, num_clusters, SEED, path="", write_path=""):
     """
     K-Means partition and storing the partition details
@@ -73,7 +93,7 @@ def partition(x_input_vecs, num_clusters, SEED, path="", write_path=""):
                 line = ''.join(str(e)+' ' for e in x_i)
                 f.write(line + " " + str(c_i) + "\n")
     
-    return x, y
+    return (x, y)
 
 def groupData(x, y):
     cluster_members = {} # indexed by cluster-id, dimension 
