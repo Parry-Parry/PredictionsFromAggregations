@@ -2,6 +2,12 @@ import numpy as np
 import collections
 from pathlib import Path
 from sklearn.cluster import KMeans
+from sklearn.cluster import MiniBatchKMeans
+from sklearn.metrics import accuracy_score
+from sklearn.metrics import f1_score, recall_score, precision_score
+import keras
+
+from generate_baseline_model import gen_model
 
 def infer_cluster_labels(kmeans, actual_labels: np.array):
     inferred_labels = {}
@@ -55,6 +61,51 @@ def dataset_normalize(train, test):
     }
 
     return dataset
+
+def runKmeans1(K : int, X : tuple, y : tuple, shape : tuple, params : dict) -> dict:
+    out = {}
+
+    d1, d2, d3 = shape
+
+    x_train, x_test = X
+    y_train, y_test = y
+
+    kmeans = MiniBatchKMeans(K)
+    kmeans.fit(x_train)
+
+    cluster_labels = infer_cluster_labels(kmeans, y_train)
+
+    labels = []
+
+    for i in range(K):
+        for k, v in cluster_labels.items():
+            if i in v: labels.append(k)
+    
+    y_tmp = np.array(labels)
+
+    centroids = kmeans.cluster_centers_.reshape(K,d1,d2)
+
+    n_classes = len(np.unique(y_train))
+
+    x2_train = np.expand_dims(centroids, -1)
+    y2_train =  keras.utils.to_categorical(y_tmp, n_classes)
+
+    model = gen_model(shape, n_classes)
+    model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
+
+    history = model.fit(x2_train, y2_train, batch_size=params['batch_size'], validation_split=0.2, epochs=params['epochs'], verbose=2)
+    out['history'] = history
+
+    y_pred = model.predict(x_test)
+    y_pred = np.argmax(y_pred, axis=1)
+
+    out['accuracy'] = accuracy_score(y_test, y_pred)
+    out['precision'] = precision_score(y_test, y_pred , average="weighted")
+    out['recall'] = recall_score(y_test, y_pred , average="weighted")
+    out['f1'] = f1_score(y_test, y_pred , average="weighted")
+
+    return out
+
 
 
 
