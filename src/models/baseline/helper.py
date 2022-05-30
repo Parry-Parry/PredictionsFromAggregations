@@ -7,6 +7,7 @@ from sklearn.cluster import MiniBatchKMeans
 from sklearn.metrics import accuracy_score
 from sklearn.metrics import f1_score, recall_score, precision_score
 import keras
+from scipy.stats import multivariate_normal
 
 from generate_baseline_model import gen_model
 
@@ -128,6 +129,11 @@ def groupData(x, y):
     
     return cluster_members
 
+def groupClusters(x, y):
+    cluster_members =  collections.defaultdict(list)
+    for a, b in zip(x, y): cluster_members[b].append(a)
+    return dict(sorted(cluster_members))
+
 def groupLabels(x, y, y_cluster_id, num_clusters, num_labels):
     cluster_labels = {} # indexed by cluster-id, dimension 
     prob_cluster_labels = []
@@ -167,8 +173,17 @@ def computeGaussianParameters(cluster_members, K, dimension): # TODO : Convert t
     
     return mean_vecs, std_vecs
 
+def computeMultivariateGaussianParameters(cluster_members, K, dimension): 
+    mu = []
+    sigma = []
+    for k, v in cluster_members.items():
+        mu.append(np.mean(v))
+        sigma.append(np.cov(v))
+    
+    return np.array(mu), np.array(sigma)
+
 def sampleFromGaussian(mu, sigma, num_samples):  
-    return [np.random.normal(mu, sigma) for i in num_samples]      
+    return np.random.multivariate_normal(mu, sigma, size=num_samples, check_valid='warn', tol=1e-8)     
 
 def reconstructWithGaussians(mu, sigma, cluster_info, label_info, num_labels):
     x_vecs = []
