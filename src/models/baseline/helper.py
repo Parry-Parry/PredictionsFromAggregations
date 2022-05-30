@@ -65,6 +65,9 @@ def dataset_normalize(train, test):
     return dataset
 
 def run_model(X : tuple, Y : tuple, shape : tuple, n_classes : int, params : dict, log_data : dict):
+    '''
+    Create a model with 'shape' input and 'n_classes' output, record performance.
+    '''
 
     x_train, x_test = X
     y_train, y_test = Y
@@ -89,78 +92,27 @@ def run_model(X : tuple, Y : tuple, shape : tuple, n_classes : int, params : dic
     out['recall'] = recall_score(y_test, y_pred , average="weighted")
     out['f1'] = f1_score(y_test, y_pred , average="weighted")
 
+    out['algorithim'] = log_data['Algorithm']
+
     return out
 
-def runKmeans(K : int, X : tuple, Y : tuple, shape : tuple, params : dict) -> dict:
-
-    log_data = {
-            'Algorithm' : 'K-Means',
-            'K Value' : str(K),
-            'Epsilon Value' : 'NA'
-        }
-        
-
-    d1, d2, d3 = shape
-
-    x_train, x_test = X
-    y_train, y_test = Y
-
-    kmeans = MiniBatchKMeans(K)
-    kmeans.fit(x_train)
-
-    cluster_labels = infer_cluster_labels(kmeans, y_train)
-
-    labels = []
-
-    for i in range(K):
-        for k, v in cluster_labels.items():
-            if i in v: labels.append(k)
-    
-    y_tmp = np.array(labels)
-
-    centroids = kmeans.cluster_centers_.reshape(K,d1,d2)
-
-    n_classes = len(np.unique(y_train))
-
-    x2_train = np.expand_dims(centroids, -1)
-    y2_train =  keras.utils.to_categorical(y_tmp, n_classes)
-
-    return run_model((x2_train, x_test), (y2_train, y_test), shape, n_classes, params, path, log_data)
-
-def partition(x_input_vecs, num_clusters, SEED, path="", write_path=""):
+def partition(x_input_vecs, num_clusters, SEED, write_path=""):
     """
     K-Means partition and storing the partition details
     """
     x = []
     y = []
         
-    if path:
-        # file exists        
-        with open(path) as f:
-            lines = f.readlines()
-            lines = [line.rstrip() for line in lines]
-            for line in lines:
-                tokens = line.split()
-                x_vec = np.zeros(len(tokens)-1)
-                for i in range(len(tokens)-1):
-                    x_vec[i] = float(tokens[i])
-                    
-                x.append(x_vec)
-                y.append(int(tokens[-1]))
-    else:
-        # Run K-means and save the vecs/cluster ids in a tsv file
-        cluster_ids = KMeans(n_clusters=num_clusters, random_state=SEED).fit_predict(x_input_vecs)
+    # Run K-means and save the vecs/cluster ids in a tsv file
+    cluster_ids = KMeans(n_clusters=num_clusters, random_state=SEED).fit_predict(x_input_vecs)
+    with open(write_path, "w") as f:
         for i in range(len(x_input_vecs)):            
             x_i = x_input_vecs[i]
             c_i = cluster_ids[i]
-            
+            line = ''.join(str(e)+' ' for e in x_i)
+            f.write(line + " " + str(c_i) + "\n")
             x.append(x_i)
             y.append(c_i)
-
-        if write_path: # TODO : Write to file
-            with open(write_path, "w") as f:
-                line = ''.join(str(e)+' ' for e in x_i)
-                f.write(line + " " + str(c_i) + "\n")
     
     return (x, y)
 
@@ -203,7 +155,7 @@ def groupLabels(x, y, y_cluster_id, num_clusters, num_labels):
         
     return prob_cluster_labels
 
-def computeGaussianParameters(cluster_members, K, dimension):
+def computeGaussianParameters(cluster_members, K, dimension): # TODO : Convert to multivariate normal
     mean_vecs = np.zeros((K, dimension), np.float32)
     std_vecs = np.zeros((K, dimension), np.float32)
     for k in range(K):
@@ -268,7 +220,45 @@ def reconstructWithEpsilonNeighborhood(mu, cluster_info, label_info, num_labels,
     
     return x_vecs, y_vecs   
 
-def runTest(K : int, epsilon : float, X : tuple, Y : tuple, shape : tuple, params : dict, SEED=8008, partition_in="", partition_out=""):
+def runKmeans(K : int, X : tuple, Y : tuple, shape : tuple, params : dict) -> dict:
+    '''
+    Run Baseline and Test with Convnet
+    '''
+    log_data = {
+            'Algorithm' : 'K-Means',
+            'K Value' : str(K),
+            'Epsilon Value' : 'NA'
+        }
+        
+
+    d1, d2, d3 = shape
+
+    x_train, x_test = X
+    y_train, y_test = Y
+
+    kmeans = MiniBatchKMeans(K)
+    kmeans.fit(x_train)
+
+    cluster_labels = infer_cluster_labels(kmeans, y_train)
+
+    labels = []
+
+    for i in range(K):
+        for k, v in cluster_labels.items():
+            if i in v: labels.append(k)
+    
+    y_tmp = np.array(labels)
+
+    centroids = kmeans.cluster_centers_.reshape(K,d1,d2)
+
+    n_classes = len(np.unique(y_train))
+
+    x2_train = np.expand_dims(centroids, -1)
+    y2_train =  keras.utils.to_categorical(y_tmp, n_classes)
+
+    return run_model((x2_train, x_test), (y2_train, y_test), shape, n_classes, params, log_data)
+
+def runTest(K : int, epsilon : float, X : tuple, Y : tuple, partitions : tuple, shape : tuple, params : dict):
     
     log_gauss = {
             'Algorithm' : 'Gaussian_Neighbourhood',
@@ -289,9 +279,7 @@ def runTest(K : int, epsilon : float, X : tuple, Y : tuple, shape : tuple, param
     x_train, x_test = X
     y_train, y_test = Y
 
-    x_train_vecs = flatten(x_train)
-
-    x, y = partition(x_train_vecs, K, SEED=SEED, path=partition_in, write_path=partition_out)
+    x, y = partitions
     members = groupData(x, y)
 
     n_classes=len(np.unique(y_train))
