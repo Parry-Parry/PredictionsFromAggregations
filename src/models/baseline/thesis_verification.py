@@ -11,13 +11,17 @@ import numpy as np
 from tqdm import tqdm
 
 from tensorflow import keras
+from src.models.baseline.kmeans import runKmeans
 from tensorflow.keras import layers
 from tensorflow.keras.datasets import cifar100, cifar10, mnist
 
 from helper import *
 
+### CMD ARGS ###
+
 parser = argparse.ArgumentParser("Verification of Baseline Results")
-parser.add_argument("--partition_dir", help="Where stored partitions are found")
+parser.add_argument("--partition_dir", help="Where cached partitions are found")
+parser.add_argument("--seed", help="Random State Seed", type="int")
 
 cwd = Path(os.getcwd())
 root = cwd.parent.parent
@@ -25,6 +29,8 @@ data = pathlib.PurePath(root, 'data')
 history = pathlib.PurePath(data, 'history')
 interim = pathlib.PurePath(data, 'interim')
 results = pathlib.PurePath(data, 'results', 'thesis')
+
+### PARAMETERS ###
 
 test_param_grid ={
     1 : {
@@ -57,6 +63,8 @@ model_param_grid = {
         'path' : history
     }
 }
+
+### DATASET INITIALIZATION ###
 
 datasets = {
     'MNIST' : {
@@ -123,7 +131,7 @@ def main():
 
         logging.info("Running Test 2 on {}...".format(key))
 
-        for e in tqdm(test_param_grid[2]['epsilon']):
+        for e in tqdm(test_param_grid[2]['epsilon']): # TODO: Make function run test 1 or test 2
             _, results, _ = runTest(test_param_grid[2]['K'], e, (x_train, x_test), (y_train, y_test), (x, y), v['shape'], model_param_grid[key], partition_out=pathlib.PurePath(data, 'interim', str(k) + key + '_partitions.tsv'))
             results['dataset'] = key
             results['Epsilon'] = e

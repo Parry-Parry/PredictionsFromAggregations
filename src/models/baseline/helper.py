@@ -3,35 +3,15 @@ import collections
 import pickle
 from pathlib import Path, PurePath
 from sklearn.cluster import KMeans
-from sklearn.cluster import MiniBatchKMeans
 from sklearn.metrics import accuracy_score
 from sklearn.metrics import f1_score, recall_score, precision_score
 import keras
-from scipy.stats import multivariate_normal
 
 from generate_baseline_model import gen_model
+from src.models.baseline.epsilon_neighbours import *
+from src.models.baseline.gaussian import *
 
-def infer_cluster_labels(kmeans, actual_labels: np.array):
-    inferred_labels = {}
-    for i in range(kmeans.n_clusters):
-        # find index of points in cluster
-        labels = []
-        index = np.where(kmeans.labels_ == i)
-        # append actual labels for each point in cluster
-        labels.append(actual_labels[index])
-        # determine most common label
-        if len(labels[0]) == 1:
-            counts = np.bincount(labels[0])
-        else:
-            counts = np.bincount(np.squeeze(labels))
-        # assign the cluster to a value in the inferred_labels dictionary
-        if np.argmax(counts) in inferred_labels:
-            # append the new number to the existing array at this slot
-            inferred_labels[np.argmax(counts)].append(i)
-        else:
-            # create a new array in this slot
-            inferred_labels[np.argmax(counts)] = [i]    
-    return inferred_labels  
+### DATA FORMATTING ###
 
 def flatten(x, num_instances=0):
     """
@@ -64,37 +44,7 @@ def dataset_normalize(train, test):
 
     return dataset
 
-def run_model(X : tuple, Y : tuple, shape : tuple, n_classes : int, params : dict, log_data : dict):
-    '''
-    Create a model with 'shape' input and 'n_classes' output, record performance.
-    '''
-
-    x_train, x_test = X
-    y_train, y_test = Y
-
-    out={}
-
-    model = gen_model(shape, n_classes)
-    model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
-
-    history = model.fit(x_train, y_train, batch_size=params['batch_size'], validation_split=0.2, epochs=params['epochs'], verbose=2)
-
-    if params['save_history']:
-        name = log_data['Algorithm'] + log_data['K'] + log_data['epsilon'] + ".pkl"
-        with open(PurePath(params['path'], 'history', name)) as f:
-            pickle.dump(history, f)
-
-    y_pred = model.predict(x_test)
-    y_pred = np.argmax(y_pred, axis=1)
-
-    out['accuracy'] = accuracy_score(y_test, y_pred)
-    out['precision'] = precision_score(y_test, y_pred , average="weighted")
-    out['recall'] = recall_score(y_test, y_pred , average="weighted")
-    out['f1'] = f1_score(y_test, y_pred , average="weighted")
-
-    out['algorithim'] = log_data['Algorithm']
-
-    return out
+### INITIAL CLUSTERS ###
 
 def partition(x_input_vecs, num_clusters, SEED, write_path=""):
     """
@@ -160,117 +110,39 @@ def groupLabels(x, y, y_cluster_id, num_clusters, num_labels):
         
     return prob_cluster_labels
 
-def computeGaussianParameters(cluster_members, K, dimension): # TODO : Convert to multivariate normal
-    mean_vecs = np.zeros((K, dimension), np.float32)
-    std_vecs = np.zeros((K, dimension), np.float32)
-    for k in range(K):
-        for j in range(dimension):
-            key = str(k) + ':' + str(j)
-            if key in cluster_members:
-                vals = np.array(cluster_members[key])
-                mean_vecs[k][j] = np.mean(vals)
-                std_vecs[k][j] = np.std(vals)
-    
-    return mean_vecs, std_vecs
+### EXPERIMENT FUNCTIONS ###
 
-def computeMultivariateGaussianParameters(cluster_members, K, dimension): 
-    mu = []
-    sigma = []
-    for k, v in cluster_members.items():
-        mu.append(np.mean(v))
-        sigma.append(np.cov(v))
-    
-    return np.array(mu), np.array(sigma)
-
-def sampleFromGaussian(mu, sigma, num_samples):  
-    return np.random.multivariate_normal(mu, sigma, size=num_samples, check_valid='warn', tol=1e-8)     
-
-def reconstructWithGaussians(mu, sigma, cluster_info, label_info, num_labels):
-    x_vecs = []
-    y_vecs = []
-    num_clusters = mu.shape[0]
-    
-    for i in range(num_clusters):
-        mu_i = mu[i] # ith cluster centroid
-        sigma_i = sigma[i] # std dev vector of ith cluster centroid
-        
-        p_label_dist = label_info[i]
-        nmembers = len(cluster_info[str(i) + ':0']) # each dimension will have identical nmembers        
-        sampled_vecs = sampleFromGaussian(mu_i, sigma_i, nmembers)
-        
-        for s in sampled_vecs:
-            x_vecs.append(s) # random point  
-            y_vecs.append(np.random.choice(num_labels, 1, p=p_label_dist)) # random label
-            
-    return x_vecs, y_vecs
-
-def sampleFromNeighborhood(x, num_samples, epsilon):
-    vecs = []
-    d = x.shape[0]
-    limit = epsilon/float(d)
-    
-    for k in range(num_samples):
-        vec = np.zeros(d)
-        for i in range(d):
-            x_i = x[i]
-            vec[i] = np.maximum(0, np.random.uniform(x_i-epsilon, x_i+epsilon))
-        vecs.append(vec)
-    return vecs 
-
-def reconstructWithEpsilonNeighborhood(mu, cluster_info, label_info, num_labels, epsilon):
-    x_vecs = []
-    y_vecs = []
-    num_clusters = mu.shape[0]
-    
-    for i in range(num_clusters):
-        mu_i = mu[i] # ith cluster centroid
-        p_label_dist = label_info[i]
-        nmembers = len(cluster_info[str(i) + ':0']) # each dimension will have identical nmembers        
-        sampled_vecs = sampleFromNeighborhood(mu_i, nmembers, epsilon)
-        
-        for s in sampled_vecs:
-            x_vecs.append(s) # random point
-            y_vecs.append(np.random.choice(num_labels, 1, p=p_label_dist)) # random label
-    
-    return x_vecs, y_vecs   
-
-def runKmeans(K : int, X : tuple, Y : tuple, shape : tuple, params : dict) -> dict:
+def run_model(X : tuple, Y : tuple, shape : tuple, n_classes : int, params : dict, log_data : dict):
     '''
-    Run Baseline and Test with Convnet
+    Create a model with 'shape' input and 'n_classes' output, record performance.
     '''
-    log_data = {
-            'Algorithm' : 'K-Means',
-            'K Value' : str(K),
-            'Epsilon Value' : 'NA'
-        }
-        
-
-    d1, d2, d3 = shape
 
     x_train, x_test = X
     y_train, y_test = Y
 
-    kmeans = MiniBatchKMeans(K)
-    kmeans.fit(x_train)
+    out={}
 
-    cluster_labels = infer_cluster_labels(kmeans, y_train)
+    model = gen_model(shape, n_classes)
+    model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
 
-    labels = []
+    history = model.fit(x_train, y_train, batch_size=params['batch_size'], validation_split=0.2, epochs=params['epochs'], verbose=2)
 
-    for i in range(K):
-        for k, v in cluster_labels.items():
-            if i in v: labels.append(k)
-    
-    y_tmp = np.array(labels)
+    if params['save_history']:
+        name = log_data['Algorithm'] + log_data['K'] + log_data['epsilon'] + ".pkl"
+        with open(PurePath(params['path'], 'history', name)) as f:
+            pickle.dump(history, f)
 
-    centroids = kmeans.cluster_centers_.reshape(K,d1,d2)
+    y_pred = model.predict(x_test)
+    y_pred = np.argmax(y_pred, axis=1)
 
-    n_classes = len(np.unique(y_train))
+    out['accuracy'] = accuracy_score(y_test, y_pred)
+    out['precision'] = precision_score(y_test, y_pred , average="weighted")
+    out['recall'] = recall_score(y_test, y_pred , average="weighted")
+    out['f1'] = f1_score(y_test, y_pred , average="weighted")
 
-    x2_train = np.expand_dims(centroids, -1)
-    y2_train =  keras.utils.to_categorical(y_tmp, n_classes)
+    out['algorithim'] = log_data['Algorithm']
 
-    return run_model((x2_train, x_test), (y2_train, y_test), shape, n_classes, params, log_data)
+    return out
 
 def runTest(K : int, epsilon : float, X : tuple, Y : tuple, partitions : tuple, shape : tuple, params : dict):
     
