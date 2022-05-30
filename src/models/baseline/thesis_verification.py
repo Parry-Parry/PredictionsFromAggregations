@@ -8,6 +8,7 @@ from pathlib import Path
 import sklearn
 import pandas as pd
 import numpy as np
+from tqdm import tqdm
 
 from tensorflow import keras
 from tensorflow.keras import layers
@@ -86,9 +87,9 @@ def main():
         y_train = v['data']['y_train']
         y_test = v['data']['y_test']
 
-        logging.info("Running Test 1...")
+        logging.info("Running Test 1 on {}...".format(key))
 
-        for k in test_param_grid[1]['K']:
+        for k in tqdm(test_param_grid[1]['K']):
             if args.partition_dir:
                 dir = args.partition_dir + "/" + key + k + '_partitions.tsv'
                 logging.info("Loading Partitions for {} dataset with {} clusters".format(key, k))
@@ -120,9 +121,9 @@ def main():
 
         logging.info("Test 1 Completed Successfully")
 
-        logging.info("Running Test 2...")
+        logging.info("Running Test 2 on {}...".format(key))
 
-        for e in test_param_grid[2]['epsilon']:
+        for e in tqdm(test_param_grid[2]['epsilon']):
             _, results, _ = runTest(test_param_grid[2]['K'], e, (x_train, x_test), (y_train, y_test), (x, y), v['shape'], model_param_grid[key], partition_out=pathlib.PurePath(data, 'interim', str(k) + key + '_partitions.tsv'))
             results['dataset'] = key
             results['Epsilon'] = e
