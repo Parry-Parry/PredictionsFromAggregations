@@ -83,7 +83,7 @@ def groupClusters(x, y):
     cluster_members =  collections.defaultdict(list)
     for a, b in zip(x, y): cluster_members[b].append(a)
     return dict(sorted(cluster_members))
-
+'''
 def groupLabels(x, y, y_cluster_id, num_clusters, num_labels):
     cluster_labels = {} # indexed by cluster-id, dimension 
     prob_cluster_labels = []
@@ -92,6 +92,32 @@ def groupLabels(x, y, y_cluster_id, num_clusters, num_labels):
         key = str(y_cluster_id[i])
         if not key in cluster_labels:
             cluster_labels[key] = []        
+        cluster_labels[key].append(y[i]) # append the ground truth label for this cluster id
+
+    for k in range(num_clusters):
+        key = str(k)
+        local_freqs = dict(collections.Counter(cluster_labels[key]))        
+        values = []
+        
+        for i in range(num_labels):
+            f = 0
+            if i in local_freqs:
+                f = local_freqs[i]
+            values.append(f)                
+            
+        nvalues = [float(i)/sum(values) for i in values]        
+        prob_cluster_labels.append(nvalues)
+        
+    return prob_cluster_labels
+'''
+def groupLabels(x, y, y_cluster_id, num_clusters): # TODO : Fix this rank mess
+    cluster_labels = collections.defaultdict(list)
+    prob_cluster_labels = []
+    
+    num_labels = len(np.unique(y))
+
+    for i in range(len(x)):
+        key = str(y_cluster_id[i])      
         cluster_labels[key].append(y[i]) # append the ground truth label for this cluster id
 
     for k in range(num_clusters):

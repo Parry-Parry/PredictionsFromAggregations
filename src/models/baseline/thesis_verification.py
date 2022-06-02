@@ -72,7 +72,7 @@ datasets = {
         'shape' : (28, 28, 1)
         },
     'CIFAR10' : {
-        'data' : dataset_normalize(cifar100.load_data(path='cifar10.npz')),
+        'data' : dataset_normalize(cifar10.load_data(path='cifar10.npz')),
         'shape' : (32, 32, 3) 
     },
     'CIFAR100' : {
@@ -103,16 +103,15 @@ def main():
                 logging.info("Loading Partitions for {} dataset with {} clusters".format(key, k))
                 with open(dir) as f:
                     lines = f.readlines()
-                    lines = [line.rstrip() for line in lines]
-                    for line in lines:
-                        tokens = line.split()
-                        x_vec = np.zeros(len(tokens)-1)
-                        for i in range(len(tokens)-1):
-                            x_vec[i] = float(tokens[i])
+                lines = [line.rstrip() for line in lines]
+                for line in lines:
+                    tokens = line.split()
+                    x_vec = np.zeros(len(tokens)-1)
+                    for i in range(len(tokens)-1):
+                        x_vec[i] = float(tokens[i])
 
-                        x.append(x_vec)
-                        y.append(int(tokens[-1]))
-
+                    x.append(x_vec)
+                    y.append(int(tokens[-1]))
             else:
                 logging.info("Generating Partitions for {} dataset with {} clusters".format(key, k))
                 x_vecs = flatten(x_train)
