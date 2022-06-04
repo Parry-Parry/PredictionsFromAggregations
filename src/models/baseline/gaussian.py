@@ -36,11 +36,11 @@ def reconstructWithGaussians(mu, sigma, cluster_info, label_info, num_labels):
         sigma_i = sigma[i] # std dev vector of ith cluster centroid
         
         p_label_dist = label_info[i]
-        nmembers = len(cluster_info[str(i) + ':0']) # each dimension will have identical nmembers        
+        nmembers = len(cluster_info[i]) # each dimension will have identical nmembers        
         sampled_vecs = sampleFromGaussian(mu_i, sigma_i, nmembers)
         
         for s in sampled_vecs:
             x_vecs.append(s) # random point  
             y_vecs.append(np.random.choice(num_labels, 1, p=p_label_dist)) # random label
             
-    return x_vecs, y_vecs
+    return np.array(x_vecs), np.array([point[0] for point in y_vecs])

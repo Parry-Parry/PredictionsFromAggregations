@@ -81,8 +81,6 @@ datasets = {
     }
 }
 
-seed = 8008
-
 def main():
     args = parser.parse_args()
 
@@ -115,6 +113,10 @@ def main():
             else:
                 logging.info("Generating Partitions for {} dataset with {} clusters".format(key, k))
                 x_vecs = flatten(x_train)
+                if not args.seed:
+                    seed = np.random.randint(0, 9999)
+                else:
+                    seed = args.seed
                 x, y = partition(x_vecs, k, SEED=seed, path="", write_path=pathlib.PurePath(interim, key + k + '_partitions.tsv'))
 
             kmeans = runKmeans(k,  (x_train, x_test), (y_train, y_test), v['shape'], model_param_grid[key])

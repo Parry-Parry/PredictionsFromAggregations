@@ -116,20 +116,13 @@ def groupLabels(x, y, y_cluster_id, num_clusters): # TODO : Fix this rank mess
     
     num_labels = len(np.unique(y))
 
-    for i in range(len(x)):
-        key = str(y_cluster_id[i])      
-        cluster_labels[key].append(y[i]) # append the ground truth label for this cluster id
+    for i in range(len(x)): cluster_labels[(y_cluster_id[i])].append(y[i]) 
 
     for k in range(num_clusters):
-        key = str(k)
-        local_freqs = dict(collections.Counter(cluster_labels[key]))        
+        local_freqs = dict(collections.Counter(cluster_labels[k]))        
         values = []
         
-        for i in range(num_labels):
-            f = 0
-            if i in local_freqs:
-                f = local_freqs[i]
-            values.append(f)                
+        values = [local_freqs[i] for i in range(num_labels) if i in local_freqs]           
             
         nvalues = [float(i)/sum(values) for i in values]        
         prob_cluster_labels.append(nvalues)
@@ -195,16 +188,13 @@ def runTest(K : int, epsilon : float, X : tuple, Y : tuple, partitions : tuple, 
     members = groupData(x, y)
 
     n_classes=len(np.unique(y_train))
-    prob_cluster_labels = groupLabels(x, y_train, y, K, 10)
+    prob_cluster_labels = groupLabels(x, y_train, y, K)
 
     mu, sigma = computeGaussianParameters(members, K, len(x[0]))
 
     ### GAUSS CALCULATIONS ###
 
     x_gauss, y_gauss = reconstructWithGaussians(mu, sigma, members, prob_cluster_labels, n_classes)
-
-    x_gauss = np.array(x_gauss)
-    y_gauss = np.array([point[0] for point in y_gauss])
 
     x_gauss = np.expand_dims(x_gauss, -1)
     x_test = np.expand_dims(x_test, -1)
@@ -221,7 +211,6 @@ def runTest(K : int, epsilon : float, X : tuple, Y : tuple, partitions : tuple, 
     y_eps = np.array([point[0] for point in y_eps])
 
     x_eps = np.expand_dims(x_eps, -1)
-    x_test = np.expand_dims(x_test, -1)
 
     y_eps = keras.utils.to_categorical(y_eps, n_classes)
 
@@ -230,7 +219,6 @@ def runTest(K : int, epsilon : float, X : tuple, Y : tuple, partitions : tuple, 
     ### COMPLETE INFORMATION CALCULATIONS ###
 
     x_train = np.expand_dims(x_train, -1)
-    x_test = np.expand_dims(x_test, -1)
 
     y_train = keras.utils.to_categorical(y_train, n_classes)
 
