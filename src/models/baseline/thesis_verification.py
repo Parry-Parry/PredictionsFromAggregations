@@ -15,13 +15,13 @@ from src.models.baseline.kmeans import runKmeans
 from tensorflow.keras import layers
 from tensorflow.keras.datasets import cifar100, cifar10, mnist
 
-from helper import *
+from src.models.baseline.helper import *
 
 ### CMD ARGS ###
 
 parser = argparse.ArgumentParser("Verification of Baseline Results")
-parser.add_argument("--partition_dir", help="Where cached partitions are found")
-parser.add_argument("--seed", help="Random State Seed", type="int")
+parser.add_argument("--partition_dir", help="Where cached partitions are found", type=str)
+parser.add_argument("--seed", help="Random State Seed", type=int)
 
 cwd = Path(os.getcwd())
 root = cwd.parent.parent
@@ -68,15 +68,15 @@ model_param_grid = {
 
 datasets = {
     'MNIST' : {
-        'data' : dataset_normalize(mnist.load_data(path='mnist.npz')),
+        'data' : dataset_normalize(mnist.load_data()),
         'shape' : (28, 28, 1)
         },
     'CIFAR10' : {
-        'data' : dataset_normalize(cifar10.load_data(path='cifar10.npz')),
+        'data' : dataset_normalize(cifar10.load_data()),
         'shape' : (32, 32, 3) 
     },
     'CIFAR100' : {
-        'data' : dataset_normalize(cifar100.load_data(path='cifar100.npz')),
+        'data' : dataset_normalize(cifar100.load_data()),
         'shape' : (32, 32, 3) 
     }
 }
@@ -97,7 +97,7 @@ def main():
 
         for k in tqdm(test_param_grid[1]['K']):
             if args.partition_dir:
-                dir = args.partition_dir + "/" + key + k + '_partitions.tsv'
+                dir = args.partition_dir + "/" + key + str(k) + '_partitions.tsv'
                 logging.info("Loading Partitions for {} dataset with {} clusters".format(key, k))
                 with open(dir) as f:
                     lines = f.readlines()
@@ -117,7 +117,7 @@ def main():
                     seed = np.random.randint(0, 9999)
                 else:
                     seed = args.seed
-                x, y = partition(x_vecs, k, SEED=seed, path="", write_path=pathlib.PurePath(interim, key + k + '_partitions.tsv'))
+                x, y = partition(x_vecs, k, SEED=seed, write_path=pathlib.PurePath(interim, key + k + '_partitions.tsv'))
 
             kmeans = runKmeans(k,  (x_train, x_test), (y_train, y_test), v['shape'], model_param_grid[key])
             gauss, epsilon, complete = runTest(k, test_param_grid[1]['epsilon'], (x_train, x_test), (y_train, y_test), (x, y), v['shape'], model_param_grid[key], partition_out=pathlib.PurePath(data, 'interim', str(k) + key + '_partitions.tsv'))

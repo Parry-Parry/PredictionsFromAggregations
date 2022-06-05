@@ -1,5 +1,5 @@
 import numpy as np
-import keras
+import tensorflow.keras as keras
 from sklearn.cluster import MiniBatchKMeans
 from src.models.baseline.helper import run_model
 
@@ -41,6 +41,10 @@ def runKmeans(K : int, X : tuple, Y : tuple, shape : tuple, params : dict) -> di
 
     x_train, x_test = X
     y_train, y_test = Y
+
+    x_train = np.expand_dims(x_train, -1)
+    x_train = x_train.reshape(len(x_train),-1)
+    x_test = np.expand_dims(x_test, -1)
 
     kmeans = MiniBatchKMeans(K)
     kmeans.fit(x_train)

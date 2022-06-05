@@ -17,12 +17,12 @@ def sampleFromNeighborhood(x, num_samples, epsilon):
 def reconstructWithEpsilonNeighborhood(mu, cluster_info, label_info, num_labels, epsilon):
     x_vecs = []
     y_vecs = []
-    num_clusters = mu.shape[0]
+    num_clusters = len(mu.keys())
     
     for i in range(num_clusters):
         mu_i = mu[i] # ith cluster centroid
         p_label_dist = label_info[i]
-        nmembers = len(cluster_info[str(i) + ':0']) # each dimension will have identical nmembers        
+        nmembers = len(cluster_info[i]) 
         sampled_vecs = sampleFromNeighborhood(mu_i, nmembers, epsilon)
         
         for s in sampled_vecs:

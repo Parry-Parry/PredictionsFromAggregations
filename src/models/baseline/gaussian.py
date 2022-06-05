@@ -1,4 +1,5 @@
 import numpy as np
+import collections
 
 
 def computeGaussianParameters(cluster_members, K, dimension): # TODO : Convert to multivariate normal
@@ -14,22 +15,19 @@ def computeGaussianParameters(cluster_members, K, dimension): # TODO : Convert t
     
     return mean_vecs, std_vecs
 
-def computeMultivariateGaussianParameters(cluster_members, K, dimension): 
-    mu = []
-    sigma = []
+def computeMultivariateGaussianParameters(cluster_members): 
+    mu = {}
+    sigma = {}
     for k, v in cluster_members.items():
-        mu.append(np.mean(v))
-        sigma.append(np.cov(v))
+        mu[k] = np.mean(v, axis=0).flatten()
+        sigma[k] = np.cov(np.array(v).T)
     
-    return np.array(mu), np.array(sigma)
-
-def sampleFromGaussian(mu, sigma, num_samples):  
-    return np.random.multivariate_normal(mu, sigma, size=num_samples, check_valid='warn', tol=1e-8)     
+    return mu, sigma
 
 def reconstructWithGaussians(mu, sigma, cluster_info, label_info, num_labels):
     x_vecs = []
     y_vecs = []
-    num_clusters = mu.shape[0]
+    num_clusters = len(mu.keys())
     
     for i in range(num_clusters):
         mu_i = mu[i] # ith cluster centroid
@@ -37,7 +35,7 @@ def reconstructWithGaussians(mu, sigma, cluster_info, label_info, num_labels):
         
         p_label_dist = label_info[i]
         nmembers = len(cluster_info[i]) # each dimension will have identical nmembers        
-        sampled_vecs = sampleFromGaussian(mu_i, sigma_i, nmembers)
+        sampled_vecs = np.random.multivariate_normal(mu_i, sigma_i, size=nmembers, check_valid='warn', tol=1e-8) 
         
         for s in sampled_vecs:
             x_vecs.append(s) # random point  

@@ -5,9 +5,9 @@ from pathlib import Path, PurePath
 from sklearn.cluster import KMeans
 from sklearn.metrics import accuracy_score
 from sklearn.metrics import f1_score, recall_score, precision_score
-import keras
+import tensorflow.keras as keras
 
-from generate_baseline_model import gen_model
+from src.models.baseline.generate_baseline_model import gen_model
 from src.models.baseline.epsilon_neighbours import *
 from src.models.baseline.gaussian import *
 
@@ -26,10 +26,9 @@ def flatten(x, num_instances=0):
         x_vecs.append(v[0])
     return np.array(x_vecs)
 
-def dataset_normalize(train, test):
-    x_train, y_train = train
-    x_test, y_test = test
-
+def dataset_normalize(data):
+    (x_train, y_train), (x_test, y_test) = data
+    
     x_train = x_train / np.float32(255)
     x_test = x_test / np.float32(255)
     y_train = y_train.astype(np.int64)
@@ -82,7 +81,7 @@ def groupData(x, y):
 def groupClusters(x, y):
     cluster_members =  collections.defaultdict(list)
     for a, b in zip(x, y): cluster_members[b].append(a)
-    return dict(sorted(cluster_members))
+    return cluster_members
 '''
 def groupLabels(x, y, y_cluster_id, num_clusters, num_labels):
     cluster_labels = {} # indexed by cluster-id, dimension 
@@ -122,7 +121,7 @@ def groupLabels(x, y, y_cluster_id, num_clusters): # TODO : Fix this rank mess
         local_freqs = dict(collections.Counter(cluster_labels[k]))        
         values = []
         
-        values = [local_freqs[i] for i in range(num_labels) if i in local_freqs]           
+        values = [local_freqs[i] if i in local_freqs else 0 for i in range(num_labels)]           
             
         nvalues = [float(i)/sum(values) for i in values]        
         prob_cluster_labels.append(nvalues)
@@ -135,9 +134,13 @@ def run_model(X : tuple, Y : tuple, shape : tuple, n_classes : int, params : dic
     '''
     Create a model with 'shape' input and 'n_classes' output, record performance.
     '''
+    
+    x, y, z = shape
 
     x_train, x_test = X
     y_train, y_test = Y
+
+    x_train = x_train.reshape(len(x_train), x, y, z)
 
     out={}
 
@@ -163,7 +166,7 @@ def run_model(X : tuple, Y : tuple, shape : tuple, n_classes : int, params : dic
 
     return out
 
-def runTest(K : int, epsilon : float, X : tuple, Y : tuple, partitions : tuple, shape : tuple, params : dict):
+def runTest(K : int, epsilon : float, X : tuple, Y : tuple, partitions : tuple, shape : tuple, params : dict, experiment : tuple):
     
     log_gauss = {
             'Algorithm' : 'Gaussian_Neighbourhood',
@@ -181,49 +184,57 @@ def runTest(K : int, epsilon : float, X : tuple, Y : tuple, partitions : tuple, 
         'Epsilon Value' : str(epsilon)
     }
 
+    results = {}
+
+    gauss, eps, complete = experiment
+
     x_train, x_test = X
     y_train, y_test = Y
 
+    x_test = np.expand_dims(x_test, -1)
+
     x, y = partitions
-    members = groupData(x, y)
+    members = groupClusters(x, y)
 
     n_classes=len(np.unique(y_train))
     prob_cluster_labels = groupLabels(x, y_train, y, K)
 
-    mu, sigma = computeGaussianParameters(members, K, len(x[0]))
+    mu, sigma = computeMultivariateGaussianParameters(members)
 
     ### GAUSS CALCULATIONS ###
 
-    x_gauss, y_gauss = reconstructWithGaussians(mu, sigma, members, prob_cluster_labels, n_classes)
+    if gauss:
 
-    x_gauss = np.expand_dims(x_gauss, -1)
-    x_test = np.expand_dims(x_test, -1)
+        x_gauss, y_gauss = reconstructWithGaussians(mu, sigma, members, prob_cluster_labels, n_classes)
 
-    y_gauss = keras.utils.to_categorical(y_gauss, n_classes)
+        x_gauss = np.expand_dims(x_gauss, -1)
+        y_gauss = keras.utils.to_categorical(y_gauss, n_classes)
 
-    gauss_out = run_model((x_gauss, x_test), (y_gauss, y_test), shape, n_classes, params, log_gauss)
+        results['gaussian'] = run_model((x_gauss, x_test), (y_gauss, y_test), shape, n_classes, params, log_gauss)
 
     ### EPSILON NEIGHBOURHOOD CALCULATIONS ###
 
-    x_eps, y_eps = reconstructWithEpsilonNeighborhood(mu, members, prob_cluster_labels, n_classes, epsilon)
+    if eps:
 
-    x_eps = np.array(x_eps)
-    y_eps = np.array([point[0] for point in y_eps])
+        x_eps, y_eps = reconstructWithEpsilonNeighborhood(mu, members, prob_cluster_labels, n_classes, epsilon)
 
-    x_eps = np.expand_dims(x_eps, -1)
+        x_eps = np.array(x_eps)
+        y_eps = np.array([point[0] for point in y_eps])
 
-    y_eps = keras.utils.to_categorical(y_eps, n_classes)
+        x_eps = np.expand_dims(x_eps, -1)
+        y_eps = keras.utils.to_categorical(y_eps, n_classes)
 
-    eps_out = run_model((x_eps, x_test), (y_eps, y_test), shape, n_classes, params, log_eps)
+        results['epsilon'] = run_model((x_eps, x_test), (y_eps, y_test), shape, n_classes, params, log_eps)
 
     ### COMPLETE INFORMATION CALCULATIONS ###
 
-    x_train = np.expand_dims(x_train, -1)
+    if complete:
 
-    y_train = keras.utils.to_categorical(y_train, n_classes)
+        x_train = np.expand_dims(x_train, -1)
+        y_train = keras.utils.to_categorical(y_train, n_classes)
 
-    complete_out = run_model((x_train, x_test), (y_train, y_test), shape, n_classes, params, log_complete)
+        results['complete'] = run_model((x_train, x_test), (y_train, y_test), shape, n_classes, params, log_complete)
 
-    return gauss_out, eps_out, complete_out 
+    return results
 
 
