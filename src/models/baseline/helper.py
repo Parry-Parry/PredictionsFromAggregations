@@ -150,9 +150,9 @@ def run_model(X : tuple, Y : tuple, shape : tuple, n_classes : int, params : dic
     history = model.fit(x_train, y_train, batch_size=params['batch_size'], validation_split=0.2, epochs=params['epochs'], verbose=0)
 
     if params['save_history']:
-        name = log_data['Algorithm'] + log_data['K'] + log_data['epsilon'] + ".pkl"
-        with open(PurePath(params['path'], 'history', name)) as f:
-            pickle.dump(history, f)
+        name = log_data['Algorithm'] + log_data['K Value'] + log_data['Epsilon Value'] + ".pkl"
+        with open(PurePath(params['path'], name), 'wb') as f:
+            pickle.dump(history.history, f)
 
     y_pred = model.predict(x_test)
     y_pred = np.argmax(y_pred, axis=1)
