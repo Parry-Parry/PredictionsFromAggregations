@@ -147,7 +147,7 @@ def run_model(X : tuple, Y : tuple, shape : tuple, n_classes : int, params : dic
     model = gen_model(shape, n_classes)
     model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
 
-    history = model.fit(x_train, y_train, batch_size=params['batch_size'], validation_split=0.2, epochs=params['epochs'], verbose=2)
+    history = model.fit(x_train, y_train, batch_size=params['batch_size'], validation_split=0.2, epochs=params['epochs'], verbose=0)
 
     if params['save_history']:
         name = log_data['Algorithm'] + log_data['K'] + log_data['epsilon'] + ".pkl"
