@@ -109,13 +109,15 @@ def groupLabels(x, y, y_cluster_id, num_clusters, num_labels):
         
     return prob_cluster_labels
 '''
-def groupLabels(x, y, y_cluster_id, num_clusters): # TODO : Fix this rank mess
+def groupLabels(x, y, y_cluster_id, num_clusters, dataset_name): # TODO : Fix this rank mess
     cluster_labels = collections.defaultdict(list)
     prob_cluster_labels = []
     
     num_labels = len(np.unique(y))
-
-    for i in range(len(x)): cluster_labels[(y_cluster_id[i])].append(y[i]) 
+    if 'CIFAR' in dataset_name:
+        for i in range(len(x)): cluster_labels[(y_cluster_id[i])].append(y[i][0]) # Strip Array wrapper for counter
+    else:
+        for i in range(len(x)): cluster_labels[(y_cluster_id[i])].append(y[i])
 
     for k in range(num_clusters):
         local_freqs = dict(collections.Counter(cluster_labels[k]))        
@@ -150,7 +152,7 @@ def run_model(X : tuple, Y : tuple, shape : tuple, n_classes : int, params : dic
     history = model.fit(x_train, y_train, batch_size=params['batch_size'], validation_split=0.2, epochs=params['epochs'], verbose=0)
 
     if params['save_history']:
-        name = log_data['Algorithm'] + log_data['K Value'] + log_data['Epsilon Value'] + ".pkl"
+        name = log_data['Algorithm'] + log_data['Dataset'] + log_data['K Value'] + log_data['Epsilon Value'] + ".pkl"
         with open(PurePath(params['path'], name), 'wb') as f:
             pickle.dump(history.history, f)
 
@@ -164,22 +166,27 @@ def run_model(X : tuple, Y : tuple, shape : tuple, n_classes : int, params : dic
 
     out['algorithim'] = log_data['Algorithm']
 
+    print("Accuracy on {} : {}".format(out['algorithim'], out['accuracy']))
+
     return out
 
-def runTest(K : int, epsilon : float, X : tuple, Y : tuple, partitions : tuple, shape : tuple, params : dict, experiment : tuple):
+def runTest(K : int, epsilon : float, X : tuple, Y : tuple, partitions : tuple, shape : tuple, params : dict, dataset_name : str, experiment : tuple):
     
     log_gauss = {
             'Algorithm' : 'Gaussian_Neighbourhood',
+            'Dataset' : dataset_name,
             'K Value' : str(K),
             'Epsilon Value' : str(epsilon)
         }
     log_eps = {
             'Algorithm' : 'Epsilon_Neighbourhood',
+            'Dataset' : dataset_name,
             'K Value' : str(K),
             'Epsilon Value' : str(epsilon)
         }
     log_complete = {
         'Algorithm' : 'Complete_Information',
+        'Dataset' : dataset_name,
         'K Value' : str(K),
         'Epsilon Value' : str(epsilon)
     }
@@ -191,13 +198,15 @@ def runTest(K : int, epsilon : float, X : tuple, Y : tuple, partitions : tuple, 
     x_train, x_test = X
     y_train, y_test = Y
 
-    x_test = np.expand_dims(x_test, -1)
+    d1, d2, d3 = shape
+
+    x_test = x_test.reshape(len(x_test), d1, d2, d3)
 
     x, y = partitions
     members = groupClusters(x, y)
 
     n_classes=len(np.unique(y_train))
-    prob_cluster_labels = groupLabels(x, y_train, y, K)
+    prob_cluster_labels = groupLabels(x, y_train, y, K, dataset_name)
 
     mu, sigma = computeMultivariateGaussianParameters(members)
 
@@ -207,7 +216,7 @@ def runTest(K : int, epsilon : float, X : tuple, Y : tuple, partitions : tuple, 
 
         x_gauss, y_gauss = reconstructWithGaussians(mu, sigma, members, prob_cluster_labels, n_classes)
 
-        x_gauss = np.expand_dims(x_gauss, -1)
+        x_gauss = x_gauss.reshape(len(x_gauss),d1,d2,d3)
         y_gauss = keras.utils.to_categorical(y_gauss, n_classes)
 
         results['gaussian'] = run_model((x_gauss, x_test), (y_gauss, y_test), shape, n_classes, params, log_gauss)
@@ -221,7 +230,7 @@ def runTest(K : int, epsilon : float, X : tuple, Y : tuple, partitions : tuple, 
         x_eps = np.array(x_eps)
         y_eps = np.array([point[0] for point in y_eps])
 
-        x_eps = np.expand_dims(x_eps, -1)
+        x_eps = x_eps.reshape(len(x_eps),d1,d2,d3)
         y_eps = keras.utils.to_categorical(y_eps, n_classes)
 
         results['epsilon'] = run_model((x_eps, x_test), (y_eps, y_test), shape, n_classes, params, log_eps)
@@ -230,7 +239,7 @@ def runTest(K : int, epsilon : float, X : tuple, Y : tuple, partitions : tuple, 
 
     if complete:
 
-        x_train = np.expand_dims(x_train, -1)
+        x_train = x_train.reshape(len(x_train),d1,d2,d3)
         y_train = keras.utils.to_categorical(y_train, n_classes)
 
         results['complete'] = run_model((x_train, x_test), (y_train, y_test), shape, n_classes, params, log_complete)

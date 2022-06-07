@@ -26,12 +26,13 @@ def infer_cluster_labels(kmeans, actual_labels: np.array):
             inferred_labels[np.argmax(counts)] = [i]    
     return inferred_labels  
 
-def runKmeans(K : int, X : tuple, Y : tuple, shape : tuple, params : dict) -> dict:
+def runKmeans(K : int, X : tuple, Y : tuple, shape : tuple, dataset_name : str, params : dict) -> dict:
     '''
     Run Baseline and Test with Convnet
     '''
     log_data = {
             'Algorithm' : 'K-Means',
+            'Dataset' : dataset_name,
             'K Value' : str(K),
             'Epsilon Value' : 'NA'
         }
@@ -42,9 +43,11 @@ def runKmeans(K : int, X : tuple, Y : tuple, shape : tuple, params : dict) -> di
     x_train, x_test = X
     y_train, y_test = Y
 
-    x_train = np.expand_dims(x_train, -1)
     x_train = x_train.reshape(len(x_train),-1)
-    x_test = np.expand_dims(x_test, -1)
+    if 'MNIST' in dataset_name:
+        x_test = np.expand_dims(x_test, -1)
+    else:
+         y_train = np.array([y_train[i][0] for i in range(len(y_train))])
 
     kmeans = MiniBatchKMeans(K)
     kmeans.fit(x_train)
@@ -59,11 +62,11 @@ def runKmeans(K : int, X : tuple, Y : tuple, shape : tuple, params : dict) -> di
     
     y_tmp = np.array(labels)
 
-    centroids = kmeans.cluster_centers_.reshape(K,d1,d2)
+    centroids = kmeans.cluster_centers_.reshape(K,d1,d2,d3)
+    x2_train = centroids
 
     n_classes = len(np.unique(y_train))
 
-    x2_train = np.expand_dims(centroids, -1)
     y2_train =  keras.utils.to_categorical(y_tmp, n_classes)
 
     return run_model((x2_train, x_test), (y2_train, y_test), shape, n_classes, params, log_data)
