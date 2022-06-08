@@ -210,6 +210,14 @@ def runTest(K : int, epsilon : float, X : tuple, Y : tuple, partitions : tuple, 
 
     mu, sigma = computeMultivariateGaussianParameters(members)
 
+    for k, v in mu.items():
+        if np.any(np.isnan(v)) or not np.all(np.isfinite(v)):
+            print("Mean Invalid for cluster {}".format(k))
+    for k, v in sigma.items():
+        if np.any(np.isnan(v)) or not np.all(np.isfinite(v)):
+            print("Sigma Invalid for cluster {}".format(k))
+    
+
     ### GAUSS CALCULATIONS ###
 
     if gauss:
