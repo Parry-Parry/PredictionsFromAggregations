@@ -19,9 +19,9 @@ def computeMultivariateGaussianParameters(cluster_members):
     mu = {}
     sigma = {}
     for k, v in cluster_members.items():
+        X = np.stack(v, axis=0)
         mu[k] = np.mean(v, axis=0).flatten()
-        sigma[k] = np.cov(np.array(v).T)
-    
+        sigma[k] = np.cov(X.T)
     return mu, sigma
 
 def reconstructWithGaussians(mu, sigma, cluster_info, label_info, num_labels):

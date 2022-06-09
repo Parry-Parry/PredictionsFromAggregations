@@ -65,50 +65,11 @@ def partition(x_input_vecs, num_clusters, SEED, write_path=""):
     
     return (x, y)
 
-def groupData(x, y):
-    cluster_members = {} # indexed by cluster-id, dimension 
-    for i in range(len(x)):
-        x_i = x[i]
-        y_i = y[i]
-        for j in range(len(x_i)):
-            key = str(y_i) + ':' + str(j)
-            if not key in cluster_members:
-                cluster_members[key] = []
-            cluster_members[key].append(x_i[j])
-    
-    return cluster_members
-
 def groupClusters(x, y):
     cluster_members =  collections.defaultdict(list)
     for a, b in zip(x, y): cluster_members[b].append(a)
     return cluster_members
-'''
-def groupLabels(x, y, y_cluster_id, num_clusters, num_labels):
-    cluster_labels = {} # indexed by cluster-id, dimension 
-    prob_cluster_labels = []
-    
-    for i in range(len(x)):
-        key = str(y_cluster_id[i])
-        if not key in cluster_labels:
-            cluster_labels[key] = []        
-        cluster_labels[key].append(y[i]) # append the ground truth label for this cluster id
 
-    for k in range(num_clusters):
-        key = str(k)
-        local_freqs = dict(collections.Counter(cluster_labels[key]))        
-        values = []
-        
-        for i in range(num_labels):
-            f = 0
-            if i in local_freqs:
-                f = local_freqs[i]
-            values.append(f)                
-            
-        nvalues = [float(i)/sum(values) for i in values]        
-        prob_cluster_labels.append(nvalues)
-        
-    return prob_cluster_labels
-'''
 def groupLabels(x, y, y_cluster_id, num_clusters, dataset_name): # TODO : Fix this rank mess
     cluster_labels = collections.defaultdict(list)
     prob_cluster_labels = []
@@ -198,25 +159,19 @@ def runTest(K : int, epsilon : float, X : tuple, Y : tuple, partitions : tuple, 
     x_train, x_test = X
     y_train, y_test = Y
 
+    x, y = partitions
+    
     d1, d2, d3 = shape
 
     x_test = x_test.reshape(len(x_test), d1, d2, d3)
 
-    x, y = partitions
     members = groupClusters(x, y)
+
+    sigma = np.eye(d1 * d2 * d3)
+    mu = {k : np.mean(v, axis=0).flatten() for k, v in members.items()}
 
     n_classes=len(np.unique(y_train))
     prob_cluster_labels = groupLabels(x, y_train, y, K, dataset_name)
-
-    mu, sigma = computeMultivariateGaussianParameters(members)
-
-    for k, v in mu.items():
-        if np.any(np.isnan(v)) or not np.all(np.isfinite(v)):
-            print("Mean Invalid for cluster {}".format(k))
-    for k, v in sigma.items():
-        if np.any(np.isnan(v)) or not np.all(np.isfinite(v)):
-            print("Sigma Invalid for cluster {}".format(k))
-    
 
     ### GAUSS CALCULATIONS ###
 
