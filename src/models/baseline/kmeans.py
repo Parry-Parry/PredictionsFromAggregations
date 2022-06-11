@@ -17,6 +17,7 @@ def infer_cluster_labels(kmeans, actual_labels: np.array):
             counts = np.bincount(labels[0])
         else:
             counts = np.bincount(np.squeeze(labels))
+        
         # assign the cluster to a value in the inferred_labels dictionary
         if np.argmax(counts) in inferred_labels:
             # append the new number to the existing array at this slot
@@ -46,8 +47,8 @@ def runKmeans(K : int, X : tuple, Y : tuple, shape : tuple, dataset_name : str, 
     x_train = x_train.reshape(len(x_train),-1)
     if 'MNIST' in dataset_name:
         x_test = np.expand_dims(x_test, -1)
-    else:
-         y_train = np.array([y_train[i][0] for i in range(len(y_train))])
+    #else:
+        #y_train = np.array([y_train[i][0] for i in range(len(y_train))])
 
     kmeans = MiniBatchKMeans(K)
     kmeans.fit(x_train)

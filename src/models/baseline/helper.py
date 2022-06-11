@@ -70,7 +70,7 @@ def groupClusters(x, y):
     for a, b in zip(x, y): cluster_members[b].append(a)
     return cluster_members
 
-def groupLabels(x, y, y_cluster_id, num_clusters, dataset_name): # TODO : Fix this rank mess
+def groupLabels(x, y, y_cluster_id, num_clusters, dataset_name):
     cluster_labels = collections.defaultdict(list)
     prob_cluster_labels = []
     

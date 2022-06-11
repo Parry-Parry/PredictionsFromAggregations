@@ -1,21 +1,20 @@
 from tensorflow.keras import Model, layers, Input
-from collections import namedtuple
+import tensorflow as tf
 import logging
 
-def gen_lstm_model(dim_in, dim_out, config : namedtuple):
-    
-    stochastic = config.stochastic
-    lstm = config.lstm
-    out = config.out
+class lstm_based(tf.keras.Model):
 
-    x = Input(dim_in)
-    
-    for layer in lstm:
-        if layer.type == 'lstm':
-            x = layers.lstm(layer.main_param, activation = layer.activation, )(x)
-        if layer.type == 'dropout':
-            x = layers.Dropout(layer.main_param)(x)
-        else:
-            logging.ERROR("Layer type {} not recognised for this structure, skipping...".format(layer.type))
-    x = layers.Dense(dim_out)(x)
-    return 
+  def __init__(self, dim_in, dim_out, config):
+    super().__init__()
+    self.stochastic = config.stochastic
+    self.lstm_in = layers.lstm(config.lstm.size, activation='relu', return_sequences=True)
+    self.lstm_out = layers.lstm(config.lstm.size, activation='relu')
+    self.output = layers.Dense(dim_out, activation='softmax')
+
+  def call(self, inputs):
+    x = self.stochastic(inputs)
+    x = self.lstm_in(x)
+    x = self.lstm_out(x)
+
+    return self.output(x)
+
