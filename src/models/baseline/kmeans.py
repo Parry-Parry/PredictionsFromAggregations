@@ -45,13 +45,13 @@ def runKmeans(K : int, X : tuple, Y : tuple, shape : tuple, dataset_name : str, 
     y_train, y_test = Y
 
     x_train = x_train.reshape(len(x_train),-1)
-    if 'MNIST' in dataset_name:
-        x_test = np.expand_dims(x_test, -1)
-    #else:
-        #y_train = np.array([y_train[i][0] for i in range(len(y_train))])
+    if 'MNIST' in dataset_name: x_test = np.expand_dims(x_test, -1)
+    else: y_train = np.array([y_train[i][0] for i in range(len(y_train))])
 
     kmeans = MiniBatchKMeans(K)
     kmeans.fit(x_train)
+
+    print("y_train shape: {}".format(y_train.shape))
 
     cluster_labels = infer_cluster_labels(kmeans, y_train)
 

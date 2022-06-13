@@ -1,4 +1,3 @@
-from responses import activate
 from tensorflow.keras import layers, Model, Sequential
 import tensorflow as tf
 
