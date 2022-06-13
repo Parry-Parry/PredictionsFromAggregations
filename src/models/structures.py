@@ -14,7 +14,7 @@ Config = namedtuple(
     [
         'in_dim',
         'out_dim'
-        'stochastic',
+        'generator',
         'lstm'
     ])
 
