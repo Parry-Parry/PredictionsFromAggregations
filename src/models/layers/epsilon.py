@@ -22,5 +22,4 @@ class epsilon_generator(tfkl.Layer):
     def call(self, inputs):
         distr = self._generate_distr(inputs)
         samples = self._sample(distr, self.n_generator)
-        
         return tf.concat(samples, axis=0)
