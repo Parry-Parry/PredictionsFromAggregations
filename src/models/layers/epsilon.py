@@ -5,16 +5,12 @@ import tensorflow as tf
        
 class epsilon_generator(tfkl.Layer):
     def __init__(self, n_generator : int, epsilon : float) -> None:
+        super().__init__()
         self.epsilon = epsilon
         self.n_generator = n_generator
 
-    def _generate_distr(self, x):
-        distr = []
-        for tensor in x:
-            lb = tensor - self.epsilon
-            ub = tensor + self.epsilon
-            distr.append(tfp.distributions.Uniform(low=lb, high=ub))
-        return distr
+    def _generate_distr(self, tensor):
+        return [tfp.distributions.Uniform(low=x-self.epsilon, high=x+self.epsilon) for x in tensor]
 
     def _sample(self, distr, n):
         return [tf.constant([d.sample() for d in distr]) for i in range(n)]

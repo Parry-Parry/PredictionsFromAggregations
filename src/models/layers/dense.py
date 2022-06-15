@@ -11,6 +11,7 @@ def _dense_generator(noise_shape : int, latent_dim : int, out_shape : int, i : i
        
 class dense_generator(tfkl.Layer):
     def __init__(self, n_generator : int, noise_shape : int, latent_dim : int, out_shape : int) -> None:
+        super().__init__()
         self.generators = [_dense_generator(noise_shape, latent_dim, out_shape, i) for i in range(n_generator)]
     def call(self, inputs):
         return tf.concat([x(inputs) for x in self.generators], axis=0)
