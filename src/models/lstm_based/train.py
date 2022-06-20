@@ -23,7 +23,7 @@ def retrieve_dataset(path : str):
     pass
 
 
-def main():
+def main(args):
     args = parser.parse_args()
     logger = logging.getLogger(__name__)
 
@@ -41,13 +41,16 @@ def main():
     metrics = [None]
 
     model.compile(optimizer=optim, loss=loss_func, metrics=metrics)
-    logger.info('Training Model')
+    logger.info('Training {} generation LSTM Model for {} epochs'.format(args.stochastic, args.epochs))
+
+    history = model.fit(data.x_train, data.y_train, epochs=args.epochs)
+    logger.info('Training Complete')
 
 
 if __name__ == '__main__':
     log_fmt = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
     logging.basicConfig(level=logging.INFO, format=log_fmt)    
-    main()
+    main(parser.parse_args())
 
 
 
