@@ -13,10 +13,9 @@ Dataset = namedtuple(
 Config = namedtuple(
     'configuration',
     [
-        'in_dim',
-        'out_dim'
         'generator',
-        'lstm'
+        'lstm',
+        'output'
     ])
 
 Layer = namedtuple(

@@ -63,7 +63,7 @@ def _dense_reparam_generator(latent_dim : int, out_shape : int, i : int):
        
 class dense_reparam_generator(tfkl.Layer):
     """
-    Autoencoder structure using Local Reparameterization (Klingma et. al. 2015) to model distribution from centroid
+    Autoencoder structure using Local Reparameterization (Kingma et. al. 2015) to model distribution from centroid
 
     :param int n_generator: The number of samples to be generated from the centroid
     :param int latent_dim: Latent dimension of generator network

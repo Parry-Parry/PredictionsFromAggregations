@@ -1,12 +1,15 @@
+import os
+import argparse
+import logging
+from pathlib import Path, PurePath
+
 from src.models.lstm_based.base_model import lstm_based
 from src.models.structures import *
 from src.models.layers.custom_layers import *
 from src.models.lstm_based.helper import *
 
-import os
-import argparse
-import logging
-from pathlib import Path, PurePath
+import tensorflow as tf
+import tensorflow_addons as tfa
 
 parser = argparse.ArgumentParser(description='Training of stochastic LSTM based classifier for images')
 
@@ -60,18 +63,32 @@ def main(args):
 
     logger.info('Aggregating Dataset')
     if args.partitions == 1:
-        pass
+        mean = 1
     else:
-        dataset = aggregate(dataset, args.partitions, partitions, args.seed)
+        mean, dataset = aggregate(dataset, args.partitions, partitions, args.seed)
 
     logger.info('Dataset Complete')
 
-    config = None
+    stochastic = None # TODO : Efficient way to load stochastic, dict?
+    lstm = Layer(mean, None)
+     # TODO : Write classification heads
+    if args.resnet:
+        out = resnet_classification()
+    else:
+        out = dense_classification()
+        
+    config = Config(stochastic, lstm, out)
 
     logger.info('Building Model')
     model = lstm_based(config)
 
-    optim=None
+    step = tf.Variable(0, trainable=False)
+    schedule = tf.optimizers.schedules.PiecewiseConstantDecay(
+    [10000, 15000], [1e-0, 1e-1, 1e-2])
+    lr = 1e-1 * schedule(step)
+    wd = lambda: 1e-4 * schedule(step)
+    optim = tfa.optimizers.AdamW(learning_rate=lr, weight_decay=wd)
+
     loss_func = None
     metrics = [None]
 
