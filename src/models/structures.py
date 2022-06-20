@@ -3,6 +3,7 @@ from collections import namedtuple
 Dataset = namedtuple(
     'dataset',
     [
+        'name',
         'x_train',
         'x_test',
         'y_train',

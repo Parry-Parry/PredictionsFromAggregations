@@ -1,35 +1,70 @@
 from src.models.lstm_based.base_model import lstm_based
 from src.models.structures import *
-from src.models.layers.dense import dense_generator
-from src.models.layers.reparam import dense_reparam_generator
-from src.models.layers.gumbal import * # Change when complete
-from src.models.layers.epsilon import epsilon_generator
-from src.models.structures import *
+from src.models.layers.custom_layers import *
+from src.models.lstm_based.helper import *
 
+import os
 import argparse
 import logging
+from pathlib import Path, PurePath
 
-parser = argparse.ArgumentParser(description='Training of stochastic LSTM based classifier')
+parser = argparse.ArgumentParser(description='Training of stochastic LSTM based classifier for images')
 
-parser.add_argument('data_path', type=str, help='Training Data Path, expects Tensorflow dataset in directory')
+parser.add_argument('dataset', type=str, default=None, help='Training Dataset, Supported: CIFAR10 & CIFAR100, MNIST')
+parser.add_argument('partitions', type=int, help='How much aggregation to perform upon the dataset')
 parser.add_argument('stochastic', type=str, default='dense', help='Type of Stochastic generator, defaults to naive dense')
 parser.add_argument('epochs', type=int, default=15, help='Number of epochs to train')
 
+parser.add_argument('--data_path', type=str, help='Training Data Path')
+parser.add_argument('--partition_path', type=str, help='Where to retrieve and save aggregate data')
 parser.add_argument('--resnet', help='Use a Pretrained Resnet classification head')
 parser.add_argument('--dir', type=str, help='Directory to store final model')
-
-
-def retrieve_dataset(path : str):
-    pass
-
+parser.add_argument('--random', type=int, help='Seed for random generator')
 
 def main(args):
     args = parser.parse_args()
     logger = logging.getLogger(__name__)
 
     logger.info('Building Dataset')
-    data = Dataset(retrieve_dataset(parser.data_path))
+    if not args.dataset and not args.data_path:
+        logger.error('A dataset has not been specified')
+        return 2
+    
+    if args.partition_path:
+        p = Path(args.partition_path)
+        if p.exists():
+            if not p.is_dir:
+                logger.warning('Invalid Partition Path, File Given')
+            else:
+                partitions = p
+        else:
+            tmp_p = PurePath(p)
+            parent = tmp_p.parent
 
+            if Path(parent.as_posix()).exists():
+                p.mkdir()
+            else:
+                logger.warning('Invalid Directory')
+    else:
+        ppath = Path(os.getcwd() + 'partions')
+        if not ppath.exists():
+            ppath.mkdir()
+        partitions = ppath
+
+    name, data = retrieve_dataset(parser.dataset, parser.data_path)
+    if data:
+        dataset = Dataset(name, data)
+    else:
+        logger.error('Error in building dataset with current args')
+        return 2
+
+    logger.info('Aggregating Dataset')
+    if args.partitions == 1:
+        pass
+    else:
+        dataset = aggregate(dataset, args.partitions, partitions, args.seed)
+
+    logger.info('Dataset Complete')
 
     config = None
 
@@ -43,7 +78,7 @@ def main(args):
     model.compile(optimizer=optim, loss=loss_func, metrics=metrics)
     logger.info('Training {} generation LSTM Model for {} epochs'.format(args.stochastic, args.epochs))
 
-    history = model.fit(data.x_train, data.y_train, epochs=args.epochs)
+    history = model.fit(dataset.x_train, dataset.y_train, epochs=args.epochs)
     logger.info('Training Complete')
 
 
