@@ -24,6 +24,13 @@ parser.add_argument('--resnet', help='Use a Pretrained Resnet classification hea
 parser.add_argument('--dir', type=str, help='Directory to store final model')
 parser.add_argument('--random', type=int, help='Seed for random generator')
 
+generators = {
+    'dense' : dense_generator,
+    'reparam' : dense_reparam_generator,
+    'gumbal' : None,
+    'epsilon' : epsilon_generator,
+}
+
 def main(args):
     args = parser.parse_args()
     logger = logging.getLogger(__name__)
@@ -34,6 +41,7 @@ def main(args):
         return 2
     
     if args.partition_path:
+        """Check path formatting and either create or access partition directory"""
         p = Path(args.partition_path)
         if p.exists():
             if not p.is_dir:
@@ -49,7 +57,8 @@ def main(args):
             else:
                 logger.warning('Invalid Directory')
     else:
-        ppath = Path(os.getcwd() + 'partions')
+        """Create or access default directory"""
+        ppath = Path(os.getcwd() + 'partitions')
         if not ppath.exists():
             ppath.mkdir()
         partitions = ppath
@@ -69,14 +78,15 @@ def main(args):
 
     logger.info('Dataset Complete')
 
-    stochastic = None # TODO : Efficient way to load stochastic, dict?
+    _, a, b, c = dataset.x_train.shape
+    stochastic = generators[args.stochastic](a * b * c)
     lstm = Layer(mean, None)
      # TODO : Write classification heads
     if args.resnet:
         out = resnet_classification()
     else:
         out = dense_classification()
-        
+
     config = Config(stochastic, lstm, out)
 
     logger.info('Building Model')
@@ -87,8 +97,8 @@ def main(args):
     [10000, 15000], [1e-0, 1e-1, 1e-2])
     lr = 1e-1 * schedule(step)
     wd = lambda: 1e-4 * schedule(step)
-    optim = tfa.optimizers.AdamW(learning_rate=lr, weight_decay=wd)
 
+    optim = tfa.optimizers.AdamW(learning_rate=lr, weight_decay=wd)
     loss_func = None
     metrics = [None]
 

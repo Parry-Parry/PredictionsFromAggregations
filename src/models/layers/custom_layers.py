@@ -47,7 +47,7 @@ class dense_generator(tfkl.Layer):
     :param int latent_dim: Latent dimension of generator network
     :param int out_shape: Size of original input / output
     """
-    def __init__(self, n_generator : int, noise_shape : int, latent_dim : int, out_shape : int) -> None:
+    def __init__(self, out_shape : int, n_generator=100, noise_shape=100, latent_dim=512) -> None:
         super().__init__()
         self.generators = [_dense_generator(noise_shape, latent_dim, out_shape, i) for i in range(n_generator)]
     def call(self, inputs):
@@ -69,7 +69,7 @@ class dense_reparam_generator(tfkl.Layer):
     :param int latent_dim: Latent dimension of generator network
     :param int out_shape: Size of original input / output
     """
-    def __init__(self, n_generator : int, latent_dim : int, out_shape : int) -> None:
+    def __init__(self, out_shape : int, n_generator=100, latent_dim=512) -> None:
         super().__init__()
         self.generators = [_dense_reparam_generator(latent_dim, out_shape, i) for i in range(n_generator)]
     def call(self, inputs):
@@ -83,7 +83,7 @@ class epsilon_generator(tfkl.Layer):
     :param int n_generator: The number of samples to be generated from the centroid
     :param float epsilon: Hyperparameter control the size of the neighbourhood
     """
-    def __init__(self, n_generator : int, epsilon : float) -> None:
+    def __init__(self, out_shape, n_generator=100, epsilon=0.01) -> None:
         super().__init__()
         self.epsilon = epsilon
         self.n_generator = n_generator
@@ -92,7 +92,8 @@ class epsilon_generator(tfkl.Layer):
         return [tfp.distributions.Uniform(low=x-self.epsilon, high=x+self.epsilon) for x in tensor]
 
     def _sample(self, distr, n):
-        return [tf.constant([d.sample() for d in distr]) for i in range(n)]
+        pixel_perfect = lambda x : np.min(np.max(0, x), 1)
+        return [tf.constant([pixel_perfect(d.sample()) for d in distr]) for i in range(n)]
 
     def call(self, inputs):
         distr = self._generate_distr(inputs)
