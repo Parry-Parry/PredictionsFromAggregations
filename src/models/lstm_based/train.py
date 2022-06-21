@@ -6,6 +6,7 @@ from pathlib import Path, PurePath
 from src.models.lstm_based.base_model import lstm_based
 from src.models.structures import *
 from src.models.layers.custom_layers import *
+from src.models.lstm_based.classification_heads import *
 from src.models.lstm_based.helper import *
 
 import tensorflow as tf
@@ -20,7 +21,7 @@ parser.add_argument('epochs', type=int, default=15, help='Number of epochs to tr
 
 parser.add_argument('--data_path', type=str, help='Training Data Path')
 parser.add_argument('--partition_path', type=str, help='Where to retrieve and save aggregate data')
-parser.add_argument('--resnet', help='Use a Pretrained Resnet classification head')
+parser.add_argument('--pretrain', help='Use a Pretrained classification head')
 parser.add_argument('--dir', type=str, help='Directory to store final model')
 parser.add_argument('--random', type=int, help='Seed for random generator')
 
@@ -82,10 +83,11 @@ def main(args):
     stochastic = generators[args.stochastic](a * b * c)
     lstm = Layer(mean, None)
      # TODO : Write classification heads
+    n_classes = len(np.unique(dataset.y_train))
     if args.resnet:
-        out = resnet_classification()
+        out = pretrained_classification(n_classes)
     else:
-        out = dense_classification()
+        out = dense_classification(n_classes)
 
     config = Config(stochastic, lstm, out)
 
