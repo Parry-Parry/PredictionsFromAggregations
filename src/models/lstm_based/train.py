@@ -16,7 +16,7 @@ parser = argparse.ArgumentParser(description='Training of stochastic LSTM based 
 
 parser.add_argument('dataset', type=str, default=None, help='Training Dataset, Supported: CIFAR10 & CIFAR100, MNIST')
 parser.add_argument('partitions', type=int, help='How much aggregation to perform upon the dataset')
-parser.add_argument('stochastic', type=str, default='dense', help='Type of Stochastic generator, defaults to naive dense')
+parser.add_argument('stochastic', default='dense', choices=['dense', 'reparam', 'gumbal', 'epsilon'], help='Type of Stochastic generator, defaults to naive dense')
 parser.add_argument('epochs', type=int, default=15, help='Number of epochs to train')
 
 parser.add_argument('--data_path', type=str, help='Training Data Path')
@@ -82,9 +82,8 @@ def main(args):
     _, a, b, c = dataset.x_train.shape
     stochastic = generators[args.stochastic](a * b * c)
     lstm = Layer(mean, None)
-     # TODO : Write classification heads
     n_classes = len(np.unique(dataset.y_train))
-    if args.resnet:
+    if args.rpretrain:
         out = pretrained_classification(n_classes)
     else:
         out = dense_classification(n_classes)
