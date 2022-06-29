@@ -83,7 +83,7 @@ def main(args):
     stochastic = generators[args.stochastic](a * b * c)
     lstm = Layer(mean, None)
     n_classes = len(np.unique(dataset.y_train))
-    if args.rpretrain:
+    if args.pretrain:
         out = pretrained_classification(n_classes)
     else:
         out = dense_classification(n_classes)

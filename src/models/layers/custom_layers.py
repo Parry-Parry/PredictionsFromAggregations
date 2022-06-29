@@ -6,6 +6,14 @@ import tensorflow as tf
 
 import numpy as np
 
+
+"""
+TODO: 
+    Few Shot Tab GAN
+    Few Shot Image GAN
+    One Shot Variations
+    Gumbal Encoder
+"""
 class gaussian_generator(tfkl.Layer):
     """
     Generate noise from a given shape
@@ -99,3 +107,9 @@ class epsilon_generator(tfkl.Layer):
         distr = self._generate_distr(inputs)
         samples = self._sample(distr, self.n_generator)
         return tf.concat(samples, axis=0)
+
+class gumbel_generator(tfkl.layer):
+    def __init__(self, out_shape, n_generator=100, epsilon=0.01) -> None:
+        super(epsilon_generator, self).__init__()
+        self.epsilon = epsilon
+        self.n_generator = n_generator
