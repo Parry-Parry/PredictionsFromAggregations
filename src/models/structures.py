@@ -20,6 +20,7 @@ Layer = namedtuple(
 generator_config = namedtuple(
     'gen_config', 
     [ 
+        'in_dim',
         'n_gen',
         'n_classes',
         'scale',

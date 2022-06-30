@@ -2,15 +2,28 @@ import tensorflow.keras as tfk
 import tensorflow.keras.layers as tfkl
 import tensorflow as tf
 
-from layers.custom_layers import generator_block
+import numpy as np
+
+from src.models.structures import generator_config
+from src.models.layers.custom_layers import generator_block
 
 def generator_loss(y_true, y_pred, weights):
     cce = tfk.losses.CategoricalCrossentropy()
     return cce(y_true, y_pred) - tf.reduce_sum(weights ** 2) ** 0.5
 
+def generator_loss(y_true, y_pred, weights):
+    cce = tfk.losses.CategoricalCrossentropy()
+    n = len(weights)
+    return cce(y_true, y_pred) - np.sum([tf.norm(weights[i] - weights[j], ord='fro') for i in range(n) for j in range(n)])
+
 class stochastic_model(tfk.Model):
-    def __init__(self, config, name='') -> None:
+    def __init__(self, config : generator_config, name='') -> None:
         super(self, stochastic_model).__init__(name=name)
-        self.generators = [generator_block(config.scale, config.n_classes, i, config.intermediate) for i in range(config.n_gen)]
-    def call():
-        pass
+        self.generators = [generator_block(config.in_dim, config.scale, config.n_classes, i, config.intermediate) for i in range(config.n_gen)]
+        self.merger = config.merger
+        self.out = tfkl.Dense(config.n_classes, activation='softmax')
+    def call(self, input_tensor):
+        intermediate = tf.concat([gen(input_tensor) for gen in self.generators], axis=0)
+        merged = self.merger(intermediate)
+        return self.out(merged)
+

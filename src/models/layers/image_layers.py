@@ -1,11 +1,9 @@
 import tensorflow.keras as tfk
 import tensorflow.keras.layers as tfkl
 import tensorflow_probability as tfp
-import tensorflow_probability.layers as tfpl
 import tensorflow as tf
 
 import numpy as np
-
 
 class gaussian_generator(tfkl.Layer):
     """
@@ -56,9 +54,9 @@ class dense_noise_generator(tfkl.Layer):
 
 
 def _dense_reparam_generator(latent_dim : int, out_shape : int, i : int):
-    x = tfpl.DenseLocalReparameterization(latent_dim // 2, activation=tf.nn.leaky_relu, input_shape=(out_shape,), name='generator_in_{}'.format(i))
-    x = tfpl.DenseLocalReparameterization(latent_dim, activation=tf.nn.leaky_relu, name='generator_latent_{}'.format(i))(x)
-    x = tfpl.DenseLocalReparameterization(out_shape, activation=tf.nn.leaky_relu, name='generator_out_{}'.format(i))(x)
+    x = tfp.layers.DenseLocalReparameterization(latent_dim // 2, activation=tf.nn.leaky_relu, input_shape=(out_shape,), name='generator_in_{}'.format(i))
+    x = tfp.layers.DenseLocalReparameterization(latent_dim, activation=tf.nn.leaky_relu, name='generator_latent_{}'.format(i))(x)
+    x = tfp.layers.DenseLocalReparameterization(out_shape, activation=tf.nn.leaky_relu, name='generator_out_{}'.format(i))(x)
 
     return x
        
@@ -84,7 +82,7 @@ class epsilon_generator(tfkl.Layer):
     :param int n_generator: The number of samples to be generated from the centroid
     :param float epsilon: Hyperparameter control the size of the neighbourhood
     """
-    def __init__(self, out_shape, n_generator=100, epsilon=0.01) -> None:
+    def __init__(self, out_shape, n_generator=100, epsilon=0.05) -> None:
         super(epsilon_generator, self).__init__()
         self.epsilon = epsilon
         self.n_generator = n_generator
@@ -101,7 +99,7 @@ class epsilon_generator(tfkl.Layer):
         samples = self._sample(distr, self.n_generator)
         return tf.concat(samples, axis=0)
 
-class gumbel_generator(tfkl.layer):
+class gumbel_generator(tfkl.Layer):
     def __init__(self, out_shape, n_generator=100, epsilon=0.01) -> None:
         super(epsilon_generator, self).__init__()
         self.epsilon = epsilon

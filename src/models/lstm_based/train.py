@@ -2,6 +2,7 @@ import os
 import argparse
 import logging
 from pathlib import Path, PurePath
+import pickle
 
 from src.models.lstm_based.base_model import lstm_based
 from src.models.structures import *
@@ -10,17 +11,18 @@ from src.models.lstm_based.classification_heads import *
 from src.models.lstm_based.helper import *
 
 import tensorflow as tf
+import tensorflow.keras as tfk
 import tensorflow_addons as tfa
 
 parser = argparse.ArgumentParser(description='Training of stochastic LSTM based classifier for images')
 
-parser.add_argument('dataset', type=str, default=None, help='Training Dataset, Supported: CIFAR10 & CIFAR100, MNIST')
-parser.add_argument('partitions', type=int, help='How much aggregation to perform upon the dataset')
-parser.add_argument('stochastic', default='epsilon', choices=['dense', 'reparam', 'gumbal', 'epsilon'], help='Type of Stochastic generator, defaults to naive dense')
-parser.add_argument('epochs', type=int, default=15, help='Number of epochs to train')
+parser.add_argument('-dataset', type=str, default=None, help='Training Dataset, Supported: CIFAR10 & CIFAR100, MNIST')
+parser.add_argument('-partitions', type=int, help='How much aggregation to perform upon the dataset')
+parser.add_argument('-stochastic', default='epsilon', choices=['dense', 'reparam', 'gumbal', 'epsilon'], help='Type of Stochastic generator, defaults to naive dense')
+parser.add_argument('-partition_path', default=None, help='Where to retrieve and save aggregate data')
+parser.add_argument('-epochs', type=int, default=15, help='Number of epochs to train')
 
 parser.add_argument('--data_path', type=str, help='Training Data Path')
-parser.add_argument('--partition_path', type=str, help='Where to retrieve and save aggregate data')
 parser.add_argument('--pretrain', help='Use a Pretrained classification head')
 parser.add_argument('--dir', type=str, help='Directory to store final model')
 parser.add_argument('--random', type=int, help='Seed for random generator')
@@ -35,7 +37,7 @@ generators = {
 def main(args):
     args = parser.parse_args()
     logger = logging.getLogger(__name__)
-
+    print(args.dataset)
     logger.info('Building Dataset')
     if not args.dataset and not args.data_path:
         logger.error('A dataset has not been specified')
@@ -44,6 +46,7 @@ def main(args):
     if args.partition_path:
         """Check path formatting and either create or access partition directory"""
         p = Path(args.partition_path)
+        print(p)
         if p.exists():
             if not p.is_dir:
                 logger.warning('Invalid Partition Path, File Given')
@@ -63,9 +66,10 @@ def main(args):
         if not ppath.exists(): ppath.mkdir()
         partitions = ppath
 
-    name, data = retrieve_dataset(parser.dataset, parser.data_path)
+    name, data = retrieve_dataset(args.dataset, args.data_path)
     if data:
-        dataset = Dataset(name, data)
+        x_train, x_test, y_train, y_test = data
+        dataset = Dataset(name, x_train, x_test, y_train, y_test)
     else:
         logger.error('Error in building dataset with current args')
         return 2
@@ -74,7 +78,7 @@ def main(args):
     if args.partitions == 1:
         mean = 1
     else:
-        mean, dataset = aggregate(dataset, args.partitions, partitions, args.seed)
+        mean, dataset = aggregate(dataset, args.partitions, partitions, args.random)
 
     logger.info('Dataset Complete')
 
@@ -99,7 +103,7 @@ def main(args):
     wd = lambda: 1e-4 * schedule(step)
 
     optim = tfa.optimizers.AdamW(learning_rate=lr, weight_decay=wd)
-    loss_func = None
+    loss_func = tfk.losses.CategoricalCrossentropy()
     metrics = [None]
 
     model.compile(optimizer=optim, loss=loss_func, metrics=metrics)
@@ -107,6 +111,9 @@ def main(args):
 
     history = model.fit(dataset.x_train, dataset.y_train, epochs=args.epochs)
     logger.info('Training Complete')
+
+    with open(parser.dir, 'wb') as f:
+        pickle.dump(history.history, f)
 
 
 if __name__ == '__main__':

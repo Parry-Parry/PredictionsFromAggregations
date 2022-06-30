@@ -77,6 +77,8 @@ target/
 
 # exclude data from source control by default
 /data/
+# exclude train scripts exposing directory information
+/train_scripts/
 
 # Mac OS-specific storage files
 .DS_Store

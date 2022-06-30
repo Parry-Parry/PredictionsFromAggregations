@@ -28,8 +28,8 @@ def retrieve_dataset(name=None, path=None):
     return None, None
 
 def aggregate(data, K, dir, seed):
-    pure = PurePath(dir.asposix())
-    path = pure.joinpath(data.name + K + seed)
+    pure = PurePath(dir)
+    path = pure.joinpath(data.name + str(K) + str(seed) + '.pkl')
 
     if Path(path).exists():
         with open(path, 'rb') as f:
