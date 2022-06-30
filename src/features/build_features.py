@@ -10,7 +10,7 @@ from tqdm import tqdm
 
 from tensorflow.keras.datasets import cifar100, cifar10, mnist
 
-from src.models.baseline.helper import *
+from src.models.thesis_baseline.helper import *
 
 cwd = Path(os.getcwd())
 root = cwd.parent.parent.parent

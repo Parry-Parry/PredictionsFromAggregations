@@ -7,9 +7,9 @@ from sklearn.metrics import accuracy_score
 from sklearn.metrics import f1_score, recall_score, precision_score
 import tensorflow.keras as keras
 
-from src.models.baseline.generate_baseline_model import gen_model
-from src.models.baseline.epsilon_neighbours import *
-from src.models.baseline.gaussian import *
+from src.models.thesis_baseline.generate_baseline_model import gen_model
+from src.models.thesis_baseline.epsilon_neighbours import *
+from src.models.thesis_baseline.gaussian import *
 
 ### DATA FORMATTING ###
 
@@ -88,7 +88,6 @@ def groupLabels(x, y, y_cluster_id, num_clusters, dataset_name):
             
         nvalues = [float(i)/sum(values) for i in values]        
         prob_cluster_labels.append(nvalues)
-        
     return prob_cluster_labels
 
 ### EXPERIMENT FUNCTIONS ###

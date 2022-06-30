@@ -1,7 +1,7 @@
 import numpy as np
 import tensorflow.keras as keras
 from sklearn.cluster import MiniBatchKMeans
-from src.models.baseline.helper import run_model
+from src.models.thesis_baseline.helper import run_model
 
 
 def infer_cluster_labels(kmeans, actual_labels: np.array):

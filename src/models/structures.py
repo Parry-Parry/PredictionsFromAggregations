@@ -10,17 +10,28 @@ Dataset = namedtuple(
         'y_test'
     ])
 
-Config = namedtuple(
-    'configuration',
-    [
-        'generator',
-        'lstm',
-        'output'
-    ])
-
 Layer = namedtuple(
     'layer',
     [
         'size',
         'activation'
+    ])
+
+generator_config = namedtuple(
+    'gen_config', 
+    [ 
+        'n_gen',
+        'n_classes',
+        'scale',
+        'intermediate',
+        'merge'
+    ]
+)
+
+Config = namedtuple(
+    'configuration',
+    [
+        'generator',
+        'merge',
+        'output'
     ])

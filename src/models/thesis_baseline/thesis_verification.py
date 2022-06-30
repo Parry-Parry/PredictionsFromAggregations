@@ -11,11 +11,11 @@ import numpy as np
 from tqdm import tqdm
 
 from tensorflow import keras
-from src.models.baseline.kmeans import runKmeans
+from src.models.thesis_baseline.kmeans import runKmeans
 from tensorflow.keras import layers
 from tensorflow.keras.datasets import cifar100, cifar10, mnist
 
-from src.models.baseline.helper import *
+from src.models.thesis_baseline.helper import *
 
 ### CMD ARGS ###
 

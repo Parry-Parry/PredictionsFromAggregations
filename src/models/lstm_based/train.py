@@ -5,7 +5,7 @@ from pathlib import Path, PurePath
 
 from src.models.lstm_based.base_model import lstm_based
 from src.models.structures import *
-from src.models.layers.custom_layers import *
+from src.models.layers.image_layers import *
 from src.models.lstm_based.classification_heads import *
 from src.models.lstm_based.helper import *
 
@@ -16,7 +16,7 @@ parser = argparse.ArgumentParser(description='Training of stochastic LSTM based 
 
 parser.add_argument('dataset', type=str, default=None, help='Training Dataset, Supported: CIFAR10 & CIFAR100, MNIST')
 parser.add_argument('partitions', type=int, help='How much aggregation to perform upon the dataset')
-parser.add_argument('stochastic', default='dense', choices=['dense', 'reparam', 'gumbal', 'epsilon'], help='Type of Stochastic generator, defaults to naive dense')
+parser.add_argument('stochastic', default='epsilon', choices=['dense', 'reparam', 'gumbal', 'epsilon'], help='Type of Stochastic generator, defaults to naive dense')
 parser.add_argument('epochs', type=int, default=15, help='Number of epochs to train')
 
 parser.add_argument('--data_path', type=str, help='Training Data Path')
@@ -26,7 +26,7 @@ parser.add_argument('--dir', type=str, help='Directory to store final model')
 parser.add_argument('--random', type=int, help='Seed for random generator')
 
 generators = {
-    'dense' : dense_generator,
+    'dense' : dense_noise_generator,
     'reparam' : dense_reparam_generator,
     'gumbal' : None,
     'epsilon' : epsilon_generator,
@@ -60,8 +60,7 @@ def main(args):
     else:
         """Create or access default directory"""
         ppath = Path(os.getcwd() + 'partitions')
-        if not ppath.exists():
-            ppath.mkdir()
+        if not ppath.exists(): ppath.mkdir()
         partitions = ppath
 
     name, data = retrieve_dataset(parser.dataset, parser.data_path)
