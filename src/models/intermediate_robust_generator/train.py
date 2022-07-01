@@ -117,7 +117,7 @@ def main(args):
 
     logger.info('Dataset Complete')
 
-    merger = tf.keras.layers(tfk.layers.LSTM(mean, activation='relu'))
+    merger = tf.keras.layers(tfk.layers.LSTM(mean, activation='relu', name='merging_layer'))
 
     config = generator_config(a*b*c, 10, n_classes, 4, None, merger)
 
@@ -155,7 +155,7 @@ def main(args):
 
         train_acc_metric.reset_states()
 
-        if step % 200 == 0:
+        if step % BATCH_SIZE == 0:
             logger.info(
                 "Training loss (for one batch) at step %d: %.4f"
                 % (step, float(loss_value))
@@ -172,6 +172,9 @@ def main(args):
 
 
     logger.info('Training Complete')
+    logger.info('Converting Model for Inference...')
+
+
 
 
 if __name__ == '__main__':
