@@ -167,14 +167,28 @@ def main(args):
         val_acc = val_acc_metric.result()
         val_acc_metric.reset_states()
 
-
+    """
+    RUN TEST HERE
+    """
 
 
 
     logger.info('Training Complete')
     logger.info('Converting Model for Inference...')
 
+    max_weight = None
+    seq_model = model.generators[max_weight]
 
+    """
+    RUN TEST INFERENCE HERE ???
+    """
+
+    logger.info("Saving History & Models")
+
+    """
+    Save both models
+    Save history + metrics
+    """
 
 
 if __name__ == '__main__':
