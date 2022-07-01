@@ -8,8 +8,10 @@ from src.models.intermediate_robust_generator.model import *
 from src.models.lstm_based.helper import retrieve_dataset, aggregate
 
 import tensorflow as tf
+import tensorflow.keras as tfk
 import tensorflow_addons as tfa
 
+import sklearn as sk
 import numpy as np
 
 parser = argparse.ArgumentParser(description='Training of stochastic LSTM based classifier for images')
@@ -25,9 +27,12 @@ parser.add_argument('--random', type=int, help='Seed for random generator')
 
 """
 TODO:
-    Convert Datasets to tf dataset
+    Add metrics
     Once tested convert to tf functions
 """
+
+BUFFER = 2048
+BATCH_SIZE = 128
 
 def main(args):
     args = parser.parse_args()
@@ -73,12 +78,46 @@ def main(args):
     else:
         mean, dataset = aggregate(dataset, args.partitions, partitions, args.seed)
 
-    logger.info('Dataset Complete')
-
-    _, a, b, c = dataset.x_train.shape
+    a, b, c, d = dataset.x_train.shape
     n_classes = len(np.unique(dataset.y_train))
 
-    merger = tf.keras.layers(tf.keras.layers.LSTM(mean, activation='relu'))
+    x_train = dataset.x_train.reshape(a, np.product([b, c, d]))
+    y_train = dataset.y_train
+    x_test = dataset.x_test.reshape(dataset.x_test.shape[0], np.product([b, c, d]))
+    y_test = dataset.y_test
+
+    x_train, x_val, y_train, y_val = sk.model_selection.train_test_split(x_train, y_train, test_size=0.2, random_state=42)
+
+    train_set = (
+    tf.data.Dataset.from_tensor_slices(
+        (   
+            tf.cast(x_train, tf.uint8),
+            tf.cast(y_train, tf.uint8)
+        )
+    )
+    ).shuffle(BUFFER).batch(BATCH_SIZE, drop_remainder=True).cache().prefetch(tf.data.AUTOTUNE)
+
+    test_set = (
+    tf.data.Dataset.from_tensor_slices(
+        (   
+            tf.cast(x_test, tf.uint8),
+            tf.cast(y_test, tf.uint8)
+        )
+    )
+    ).shuffle(BUFFER).batch(BATCH_SIZE, drop_remainder=True).cache().prefetch(tf.data.AUTOTUNE)
+
+    val_set = (
+    tf.data.Dataset.from_tensor_slices(
+        (   
+            tf.cast(x_val, tf.uint8),
+            tf.cast(y_val, tf.uint8)
+        )
+    )
+    ).shuffle(BUFFER).batch(BATCH_SIZE, drop_remainder=True).cache().prefetch(tf.data.AUTOTUNE)
+
+    logger.info('Dataset Complete')
+
+    merger = tf.keras.layers(tfk.layers.LSTM(mean, activation='relu'))
 
     config = generator_config(a*b*c, 10, n_classes, 4, None, merger)
 
@@ -96,19 +135,38 @@ def main(args):
     
     logger.info('Training Model for {} epochs'.format(args.stochastic, args.epochs))
 
+    train_acc_metric = tfk.metrics.SparseCategoricalAccuracy()
+    val_acc_metric = tfk.metrics.SparseCategoricalAccuracy()
+
+
     for epoch in range(args.epochs):
         logger.info('Epoch {}...'.format(epoch))
-        for step, (x_batch, y_batch) in enumerate(train_dataset): # Resolve tf dataset
+        for step, (x_batch, y_batch) in enumerate(train_set): 
             with tf.GradientTape() as tape:
                 pred = model(x_batch)
                 loss_value = loss_fn(y_batch, pred, [gen.dense.kernel for gen in model.generators])
             grads = tape.gradient(loss_value, model.trainable_weights)
             optim.apply_gradients(zip(grads, model.trainable_weights))
+
+            train_acc_metric.update_state(y_batch, pred)
+
+        train_acc = train_acc_metric.result()
+        logger.info("Training acc over epoch: %.4f" % (float(train_acc),))
+
+        train_acc_metric.reset_states()
+
         if step % 200 == 0:
             logger.info(
                 "Training loss (for one batch) at step %d: %.4f"
                 % (step, float(loss_value))
             )
+
+        for x_batch, y_batch in val_set:
+            val_pred = model(x_batch, training=False)
+            val_acc_metric.update_state(y_batch, val_pred)
+        val_acc = val_acc_metric.result()
+        val_acc_metric.reset_states()
+
 
 
 

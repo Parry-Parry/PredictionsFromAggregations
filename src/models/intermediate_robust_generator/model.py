@@ -9,12 +9,8 @@ from src.models.layers.custom_layers import generator_block
 
 def generator_loss(y_true, y_pred, weights):
     cce = tfk.losses.CategoricalCrossentropy()
-    return cce(y_true, y_pred) - tf.reduce_sum(weights ** 2) ** 0.5
-
-def generator_loss(y_true, y_pred, weights):
-    cce = tfk.losses.CategoricalCrossentropy()
     n = len(weights)
-    return cce(y_true, y_pred) - np.sum([tf.norm(weights[i] - weights[j], ord='fro') for i in range(n) for j in range(n)])
+    return cce(y_true, y_pred) - tf.reduce_sum([tf.norm(weights[i] - weights[j], ord='fro') for i in range(n) for j in range(n)])
 
 class stochastic_model(tfk.Model):
     def __init__(self, config : generator_config, name='') -> None:
