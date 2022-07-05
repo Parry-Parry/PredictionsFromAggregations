@@ -88,33 +88,12 @@ def main(args):
     y_test = tfk.utils.to_categorical(dataset.y_test, n_classes)
 
     x_train, x_val, y_train, y_val = sk.model_selection.train_test_split(x_train, y_train, test_size=0.2, random_state=42)
+    """I present the current worst function in the codebase"""
+    tf_convert = lambda x, y, type : (tf.data.Dataset.from_tensor_slices((tf.cast(x, type), tf.cast(y, type)))).shuffle(BUFFER).batch(BATCH_SIZE, drop_remainder=True).cache().prefetch(tf.data.AUTOTUNE)
 
-    train_set = (
-    tf.data.Dataset.from_tensor_slices(
-        (   
-            tf.cast(x_train, tf.uint8),
-            tf.cast(y_train, tf.uint8)
-        )
-    )
-    ).shuffle(BUFFER).batch(BATCH_SIZE, drop_remainder=True).cache().prefetch(tf.data.AUTOTUNE)
-
-    test_set = (
-    tf.data.Dataset.from_tensor_slices(
-        (   
-            tf.cast(x_test, tf.uint8),
-            tf.cast(y_test, tf.uint8)
-        )
-    )
-    ).shuffle(BUFFER).batch(BATCH_SIZE, drop_remainder=True).cache().prefetch(tf.data.AUTOTUNE)
-
-    val_set = (
-    tf.data.Dataset.from_tensor_slices(
-        (   
-            tf.cast(x_val, tf.uint8),
-            tf.cast(y_val, tf.uint8)
-        )
-    )
-    ).shuffle(BUFFER).batch(BATCH_SIZE, drop_remainder=True).cache().prefetch(tf.data.AUTOTUNE)
+    train_set = tf_convert(x_train, y_train, tf.uint8)
+    test_set = tf_convert(x_test, y_test, tf.uint8)
+    val_set = tf_convert(x_val, y_val, tf.uint8)
 
     logger.info('Dataset Complete')
 
