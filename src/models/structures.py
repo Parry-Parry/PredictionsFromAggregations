@@ -35,4 +35,15 @@ Config = namedtuple(
         'generator',
         'merge',
         'output'
-    ])
+    ]
+)
+
+Result = namedtuple(
+    'fit_result',
+    [
+        'acc_store',
+        'val_acc_store',
+        'test_acc',
+        'history'
+    ]
+)

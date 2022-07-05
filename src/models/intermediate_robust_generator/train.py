@@ -2,6 +2,7 @@ import os
 import argparse
 import logging
 from pathlib import Path, PurePath
+from collections import defaultdict
 
 from src.models.structures import *
 from src.models.intermediate_robust_generator.model import *
@@ -81,10 +82,10 @@ def main(args):
     a, b, c, d = dataset.x_train.shape
     n_classes = len(np.unique(dataset.y_train))
 
-    x_train = dataset.x_train.reshape(a, np.product([b, c, d]))
-    y_train = dataset.y_train
-    x_test = dataset.x_test.reshape(dataset.x_test.shape[0], np.product([b, c, d]))
-    y_test = dataset.y_test
+    x_train = dataset.x_train.reshape(a, b*c*d)
+    y_train = tfk.utils.to_categorical(dataset.y_train, n_classes)
+    x_test = dataset.x_test.reshape(dataset.x_test.shape[0], b*c*d)
+    y_test = tfk.utils.to_categorical(dataset.y_test, n_classes)
 
     x_train, x_val, y_train, y_val = sk.model_selection.train_test_split(x_train, y_train, test_size=0.2, random_state=42)
 
@@ -117,9 +118,9 @@ def main(args):
 
     logger.info('Dataset Complete')
 
-    merger = tf.keras.layers(tfk.layers.LSTM(mean, activation='relu', name='merging_layer'))
+    merger = tfk.layers.BiDirectional(tfk.layers.LSTM(mean, activation='relu', name='merging_layer'))
 
-    config = generator_config(a*b*c, 10, n_classes, 4, None, merger)
+    config = generator_config(b*c*d, 10, n_classes, 4, None, merger)
 
     logger.info('Building Model')
     model = stochastic_model(config)
@@ -135,6 +136,8 @@ def main(args):
     
     logger.info('Training Model for {} epochs'.format(args.stochastic, args.epochs))
 
+    results = Result(defaultdict(list), {}, defaultdict(list))
+
     train_acc_metric = tfk.metrics.SparseCategoricalAccuracy()
     val_acc_metric = tfk.metrics.SparseCategoricalAccuracy()
 
@@ -145,12 +148,14 @@ def main(args):
             with tf.GradientTape() as tape:
                 pred = model(x_batch)
                 loss_value = loss_fn(y_batch, pred, [gen.dense.kernel for gen in model.generators])
+            results.history[epoch].append(loss_value)
             grads = tape.gradient(loss_value, model.trainable_weights)
             optim.apply_gradients(zip(grads, model.trainable_weights))
 
             train_acc_metric.update_state(y_batch, pred)
 
         train_acc = train_acc_metric.result()
+        results.acc_score[epoch].append(train_acc)
         logger.info("Training acc over epoch: %.4f" % (float(train_acc),))
 
         train_acc_metric.reset_states()
@@ -165,6 +170,7 @@ def main(args):
             val_pred = model(x_batch, training=False)
             val_acc_metric.update_state(y_batch, val_pred)
         val_acc = val_acc_metric.result()
+        results.val_acc_score[epoch] = val_acc
         val_acc_metric.reset_states()
 
     """
