@@ -7,6 +7,6 @@ def pretrained_classification(n_classes : int, in_dim : tuple):
     x.trainable = False
     x = tfkl.Dense(n_classes * 2, activation='relu')(x)
     return tfkl.Dense(n_classes, activation='softmax')(x)
-def dense_classification(n_classes : int, in_dim: tuple):
-    x = tfkl.Dense(n_classes * 2, input_shape=in_dim, activation='relu')
+def dense_classification(n_classes : int):
+    x = tfkl.Dense(n_classes * 2, activation='relu')
     return tfkl.Dense(n_classes, activation='softmax')(x)
