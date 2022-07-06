@@ -23,7 +23,7 @@ class lstm_based(tfk.Model):
 
 class epsilon_model(tfk.Model):
     def __init__(self, config : generator_config, epsilon=0.05, name='') -> None:
-        super(self, epsilon_model).__init__(name=name)
+        super(epsilon_model, self).__init__(name=name)
         self.generators = [epsilon_generator(config.in_dim, config.scale, config.n_classes, i, config.intermediate, epsilon) for i in range(config.n_gen)]
         self.merger = config.merger
         self.out = tfkl.Dense(config.n_classes, activation='softmax')

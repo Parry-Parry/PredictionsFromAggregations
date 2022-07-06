@@ -14,7 +14,7 @@ def generator_loss(y_true, y_pred, weights):
 
 class stochastic_model(tfk.Model):
     def __init__(self, config : generator_config, name='') -> None:
-        super(self, stochastic_model).__init__(name=name)
+        super(stochastic_model, self).__init__(name=name)
         self.generators = [generator_block(config.in_dim, config.scale, config.n_classes, i, config.intermediate) for i in range(config.n_gen)]
         self.merger = config.merger
         self.out = tfkl.Dense(config.n_classes, activation='softmax')

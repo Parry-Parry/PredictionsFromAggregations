@@ -33,9 +33,11 @@ def aggregate(data, K, dir, seed):
 
     if Path(path).exists():
         with open(path, 'rb') as f:
-            aggr_x, aggr_y, avg = pickle.load(f)
+            tmp = pickle.load(f)
+            aggr_x, aggr_y, avg = tmp
     else:
-        x = data.x_train.flatten()
+        x = np.array([img.flatten() for img in data.x_train])
+        
         if not seed: seed = np.random.randint(9999)
         clustering = KMeans(n_clusters=K, random_state=seed).fit_predict(x)
 
@@ -53,7 +55,7 @@ def aggregate(data, K, dir, seed):
         member_count = []
 
         for k, v in cluster_members.items():
-            centroids.append(np.mean(v))
+            centroids.append(np.mean(v, axis=0))
             vals, counts = np.unique(cluster_labels[k], return_counts=True)
             labels.append(vals[np.argmax(counts)]) # majority class
             member_count.append(len(v))
@@ -63,7 +65,7 @@ def aggregate(data, K, dir, seed):
         avg = np.mean(member_count)
 
         with open(path, 'wb') as f:
-            pickle.dump((aggr_x, aggr_y, avg))
+            pickle.dump((aggr_x, aggr_y, avg), f)
 
     return avg, Dataset(data.name, aggr_x, data.x_test, aggr_y, data.y_test)
 
