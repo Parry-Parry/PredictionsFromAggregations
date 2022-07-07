@@ -25,7 +25,7 @@ generator_config = namedtuple(
         'n_classes',
         'scale',
         'intermediate',
-        'merge'
+        'merger'
     ]
 )
 

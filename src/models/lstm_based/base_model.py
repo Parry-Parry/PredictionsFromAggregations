@@ -28,6 +28,10 @@ class epsilon_model(tfk.Model):
         self.merger = config.merger
         self.out = tfkl.Dense(config.n_classes, activation='softmax')
     def call(self, input_tensor):
-        intermediate = tf.concat([gen(input_tensor) for gen in self.generators], axis=0)
-        merged = self.merger(intermediate)
+        intermediate_values = list
+        for i in tf.range(len(self.generators)):
+          intermediate_values.append(self.generators[i](input_tensor))
+        merged = self.merger(tf.stack(intermediate_values, axis=0))
+        #intermediate = tf.concat([gen(input_tensor) for gen in self.generators], axis=0)
+        #merged = self.merger(intermediate)
         return self.out(merged)
