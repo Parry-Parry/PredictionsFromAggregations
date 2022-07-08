@@ -31,10 +31,12 @@ class epsilon_generator(tfkl.Layer):
         self.epsilon = epsilon
 
     def _distr(self, value):
-        return tf.math.minimum(tf.math.maximum(0, np.random.uniform(low=value-self.epsilon, high=value+self.epsilon)), 1)
+        distr = tfp.distributions.uniform(low=value-self.epsilon, high=value+self.epsilon)
+        print("distr Works")
+        return tf.math.minimum(tf.math.maximum(0, distr.sample()), 1)
 
     def _sample(self, tensor):
-        spec = tf.TensorSpec(shape=tensor.shape, dtype=tf.uint8)
+        spec = tf.TensorSpec(shape=tensor.shape, dtype=tf.float32)
         return tf.map_fn(self._distr, tensor, fn_output_signature=spec)
 
     def call(self, input_tensor):
