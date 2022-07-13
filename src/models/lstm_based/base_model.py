@@ -2,6 +2,8 @@ import tensorflow.keras as tfk
 import tensorflow.keras.layers as tfkl
 import tensorflow as tf
 
+from keras_multi_head import MultiHead
+
 from src.models.structures import *
 from src.models.layers.custom_layers import epsilon_generator
 
@@ -24,14 +26,11 @@ class lstm_based(tfk.Model):
 class epsilon_model(tfk.Model):
     def __init__(self, config : generator_config, epsilon=0.05, name='') -> None:
         super(epsilon_model, self).__init__(name=name)
-        self.generators = [epsilon_generator(config.in_dim, config.scale, config.n_classes, i, config.intermediate, epsilon) for i in range(config.n_gen)]
+        self.generators = MultiHead(epsilon_generator(config.in_dim, config.scale, config.n_classes, config.intermediate, epsilon), layer_num=config.n_gen, name='Generators')
         self.merger = config.merger
         self.out = tfkl.Dense(config.n_classes, activation='softmax')
     def call(self, input_tensor):
-        intermediate_values = list
-        for i in range(len(self.generators)):
-          intermediate_values.append(self.generators[i](input_tensor))
-        merged = self.merger(tf.stack(intermediate_values, axis=0))
-        #intermediate = tf.concat([gen(input_tensor) for gen in self.generators], axis=0)
-        #merged = self.merger(intermediate)
+        intermediate_values = self.generators(input_tensor)
+        intermediate = tf.reshape(intermediate_values, shape=(intermediate_values.shape[0], )) # MOVE ORIGINAL SHAPE IN HERE
+        merged = self.merger(intermediate)
         return self.out(merged)
