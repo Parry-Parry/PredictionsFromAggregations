@@ -35,7 +35,9 @@ def aggregate(data, K, dir, seed):
         with open(path, 'rb') as f:
             tmp = pickle.load(f)
             aggr_x, aggr_y, avg = tmp
+            shape = aggr_x.shape
     else:
+        shape = tuple([K] + list(data.x_train.shape[1:]))
         x = np.array([img.flatten() for img in data.x_train])
         
         if not seed: seed = np.random.randint(9999)
@@ -60,14 +62,14 @@ def aggregate(data, K, dir, seed):
             labels.append(vals[np.argmax(counts)]) # majority class
             member_count.append(len(v))
         
-        aggr_x = np.array(centroids)
+        aggr_x = np.reshape(np.array(centroids), shape)
         aggr_y = np.array(labels)
         avg = np.mean(member_count)
 
         with open(path, 'wb') as f:
             pickle.dump((aggr_x, aggr_y, avg), f)
 
-    return avg, Dataset(data.name, aggr_x, data.x_test, aggr_y, data.y_test)
+    return avg, shape, Dataset(data.name, aggr_x, data.x_test, aggr_y, data.y_test)
 
 
 

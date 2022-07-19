@@ -1,5 +1,5 @@
 import tensorflow.keras as tfk
-import tensorflow.keras.layers as tfkl
+from tensorflow.keras import layers as tfkl
 import tensorflow as tf
 import tensorflow_probability as tfp
 
@@ -32,16 +32,19 @@ class single_epsilon_generator(tfkl.Layer):
 
     def _distr(self, value):
         value = value.numpy()
-        distr = tfp.distributions.uniform(low=value-self.epsilon, high=value+self.epsilon)
-        x = tf.math.minimum(tf.math.maximum(0.0, distr.sample()), 1.0)
-        return tf.constant(x, dtype=tf.float32)
+        sample = np.random.uniform(low=value-self.epsilon, high=value+self.epsilon)
+        x = tf.math.minimum(tf.math.maximum(0.0, sample), 1.0)
+        return tf.constant(tf.cast(x, tf.float32), dtype=tf.float32)
 
     def call(self, input_tensor):
-        assert input_tensor.rank == 4, "Incorrect shape passed"
+        assert len(input_tensor.shape) == 4, "Incorrect shape passed"
         a, b, c, d = input_tensor.shape
         interim_tensor = tf.reshape(input_tensor, [-1])
         x = tf.map_fn(lambda x : self._distr(x), elems=interim_tensor)
-        x = tf.reshape(x, [a, b, c, d])
-        if self.intermediate: x = self.intermediate(x)
+        if self.intermediate: 
+            x = tf.reshape(x, [a, b, c, d])
+            x = self.intermediate(x)
+        else:
+            x = tf.reshape(x, [a, np.product([b, c, d])])
         return self.out(x)
        

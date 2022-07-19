@@ -5,7 +5,7 @@ import tensorflow as tf
 from keras_multi_head import MultiHead
 
 from src.models.structures import *
-from src.models.layers.custom_layers import epsilon_generator
+from src.models.layers.custom_layers import single_epsilon_generator as epsilon_generator
 
 class lstm_based(tfk.Model):
 
@@ -37,7 +37,7 @@ class epsilon_model(tfk.Model):
 
 class epsilon_3_model(tfk.Model):
     def __init__(self, config : generator_config, epsilon=0.05, name='') -> None:
-        super(epsilon_model, self).__init__(name=name)
+        super(epsilon_3_model, self).__init__(name=name)
         self.generator1 = epsilon_generator(config.in_dim, config.scale, config.n_classes, config.intermediate, epsilon)
         self.generator2 = epsilon_generator(config.in_dim, config.scale, config.n_classes, config.intermediate, epsilon)
         self.generator3 = epsilon_generator(config.in_dim, config.scale, config.n_classes, config.intermediate, epsilon)
@@ -52,7 +52,7 @@ class epsilon_3_model(tfk.Model):
 
 class epsilon_5_model(tfk.Model):
     def __init__(self, config : generator_config, epsilon=0.05, name='') -> None:
-        super(epsilon_model, self).__init__(name=name)
+        super(epsilon_5_model, self).__init__(name=name)
         self.generator1 = epsilon_generator(config.in_dim, config.scale, config.n_classes, config.intermediate, epsilon)
         self.generator2 = epsilon_generator(config.in_dim, config.scale, config.n_classes, config.intermediate, epsilon)
         self.generator3 = epsilon_generator(config.in_dim, config.scale, config.n_classes, config.intermediate, epsilon)
