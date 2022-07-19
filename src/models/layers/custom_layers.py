@@ -36,14 +36,12 @@ class single_epsilon_generator(tfkl.Layer):
         x = tf.math.minimum(tf.math.maximum(0.0, distr.sample()), 1.0)
         return tf.constant(x, dtype=tf.float32)
 
-    def _sample(self, input_tensor):
-        x = [self._distr(x) for x in tf.unstack(input_tensor)]
-        #x = tf.map_fn(self._distr, elems=tensor)
-        return tf.concat(x, axis=0)
-
     def call(self, input_tensor):
-        #x = tf.map_fn(self._sample, elems=input_tensor)
-        x = tf.concat([self._sample(x) for x in tf.unstack(input_tensor)], axis=0)
+        assert input_tensor.rank == 4, "Incorrect shape passed"
+        a, b, c, d = input_tensor.shape
+        interim_tensor = tf.reshape(input_tensor, [-1])
+        x = tf.map_fn(lambda x : self._distr(x), elems=interim_tensor)
+        x = tf.reshape(x, [a, b, c, d])
         if self.intermediate: x = self.intermediate(x)
-        return self.out(input_tensor)
+        return self.out(x)
        
