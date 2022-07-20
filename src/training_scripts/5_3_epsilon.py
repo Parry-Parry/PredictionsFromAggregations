@@ -1,3 +1,4 @@
+import pickle
 import os
 import argparse
 import logging
@@ -106,7 +107,7 @@ def main(args):
     logger.info('Dataset Complete')
 
     for epsilon in EPSILON:
-        print("Epsilon value on {} generator model".format(args.n_gen))
+        logger.info("Epsilon value on {} generator model".format(args.n_gen))
         config = generator_config(b*c*d, 10, n_classes, 4, None, None)
         models ={
             3 : epsilon_3_model,
@@ -169,7 +170,9 @@ def main(args):
 
         logger.info("Saving History & Models")
 
-        model.save(args.dir + "epsilon{}generator{}partions{}".format(epsilon, args.n_gen, args.partitions))
+        with open(args.dir + "epsilon{}generator{}partions{}.pkl".format(epsilon, args.n_gen, args.partitions)) as file:
+            pickle.dump(results, file)
+        model.save(args.dir + "epsilon{}generator{}partions{}.tf".format(epsilon, args.n_gen, args.partitions))
     
     return 0
 
