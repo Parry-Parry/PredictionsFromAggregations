@@ -107,7 +107,7 @@ def main(args):
     logger.info('Dataset Complete')
 
     for epsilon in EPSILON:
-        logger.info("Epsilon value on {} generator model".format(args.n_gen))
+        logger.info("Epsilon value on {} generator model: {}".format(args.n_gen, epsilon))
         config = generator_config(b*c*d, 10, n_classes, 4, None, None)
         models ={
             3 : epsilon_3_model,
@@ -155,7 +155,7 @@ def main(args):
                 val_pred = model(x_batch, training=False)
                 val_acc_metric.update_state(y_batch, val_pred)
             val_acc = val_acc_metric.result()
-            results.val_acc_score[epoch] = val_acc
+            results.val_acc[epoch] = val_acc
             val_acc_metric.reset_states()
 
         logger.info('Training Complete')
