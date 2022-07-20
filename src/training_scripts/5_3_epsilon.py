@@ -122,7 +122,7 @@ def main(args):
         optim = tfk.optimizers.Adam(learning_rate=LEARNING_RATE)
         loss_fn = tfk.losses.CategoricalCrossentropy()
 
-        results = Result(defaultdict(list), {}, defaultdict(list))
+        results = Result(defaultdict(list), {}, defaultdict(list), defaultdict(list))
 
         train_acc_metric = tfk.metrics.CategoricalAccuracy()
         val_acc_metric = tfk.metrics.CategoricalAccuracy()
