@@ -64,7 +64,7 @@ def main(args):
         if not ppath.exists(): ppath.mkdir()
         partitions = ppath
 
-    name, data = retrieve_dataset(parser.dataset, parser.data_path)
+    name, data = retrieve_dataset(args.dataset, args.data_path)
     if data:
         dataset = Dataset(name, data)
     else:
