@@ -66,7 +66,8 @@ def main(args):
 
     name, data = retrieve_dataset(args.dataset, args.data_path)
     if data:
-        dataset = Dataset(name, data)
+        x_train, x_test, y_train, y_test = data
+        dataset = Dataset(name, x_train, x_test, y_train, y_test)
     else:
         logger.error('Error in building dataset with current args')
         return 2
