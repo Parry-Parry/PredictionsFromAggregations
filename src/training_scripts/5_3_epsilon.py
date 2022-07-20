@@ -140,7 +140,7 @@ def main(args):
                 train_acc_metric.update_state(y_batch, pred)
 
             train_acc = train_acc_metric.result()
-            results.acc_score[epoch].append(train_acc)
+            results.acc[epoch].append(train_acc)
             logger.info("Training acc over epoch: %.4f" % (float(train_acc),))
 
             train_acc_metric.reset_states()
