@@ -76,7 +76,7 @@ def main(args):
     if args.partitions == 1:
         mean = 1
     else:
-        mean, shape, dataset = aggregate(dataset, args.partitions, partitions, args.seed)
+        mean, shape, dataset = aggregate(dataset, args.partitions, args.partition_path, args.seed)
 
     if len(shape) == 3:
         a, b, c = shape
