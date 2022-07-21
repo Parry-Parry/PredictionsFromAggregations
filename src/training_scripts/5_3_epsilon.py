@@ -170,6 +170,8 @@ def main(args):
             test_acc_metric.update_state(y_batch, test_pred)
         test_acc = test_acc_metric.result()
 
+        logger.info("Test Accuracy: {}".format(test_acc))
+
         results = {
             'train_acc' : train_acc_store, 
             'val_acc' : val_acc_store, 
