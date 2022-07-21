@@ -123,7 +123,7 @@ def main(args):
         optim = tfk.optimizers.Adam(learning_rate=LEARNING_RATE)
         loss_fn = tfk.losses.CategoricalCrossentropy()
 
-        results = Result(defaultdict(list), {}, defaultdict(list), defaultdict(list))
+        results = Result(defaultdict(list), {}, 0, defaultdict(list))
 
         train_acc_metric = tfk.metrics.CategoricalAccuracy()
         val_acc_metric = tfk.metrics.CategoricalAccuracy()
@@ -167,7 +167,7 @@ def main(args):
             test_pred = model(x_batch, training=False)
             test_acc_metric.update_state(y_batch, test_pred)
         test_acc = test_acc_metric.result()
-        results.test_acc = test_acc
+        results.test_acc += test_acc
 
         logger.info("Saving History & Models")
 
