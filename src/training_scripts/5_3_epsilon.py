@@ -4,7 +4,7 @@ import argparse
 import logging
 from pathlib import Path, PurePath
 from collections import defaultdict
-from src.models.lstm_based.base_model import epsilon_3_model, epsilon_5_model
+from src.models.lstm_based.base_model import convnet, epsilon_3_model, epsilon_5_model
 
 from src.models.structures import *
 from src.models.intermediate_robust_generator.model import *
@@ -108,7 +108,8 @@ def main(args):
 
     for epsilon in EPSILON:
         logger.info("Epsilon value on {} generator model: {}".format(args.n_gen, epsilon))
-        config = generator_config(b*c*d, 10, n_classes, 4, None, None)
+        intermediate = convnet((b, c, d))
+        config = generator_config((a, b, c, d), 10, n_classes, 4, intermediate, None)
         models ={
             3 : epsilon_3_model,
             5 : epsilon_5_model

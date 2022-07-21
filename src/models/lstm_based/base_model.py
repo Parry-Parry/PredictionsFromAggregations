@@ -23,6 +23,23 @@ class lstm_based(tfk.Model):
     
     return self.output(x)
 
+def convnet(in_dim : tuple):
+    return tfk.Sequential(
+    [
+        tfk.Input(shape=in_dim),
+        tfkl.Conv2D(32, kernel_size=(3, 3), activation="relu",padding = 'same'),
+        tfkl.Conv2D(32, kernel_size=(3, 3), activation="relu",padding = 'same'),
+        tfkl.MaxPooling2D(pool_size=(2, 2)),
+        tfkl.Dropout(0.25),
+        tfkl.Conv2D(64, kernel_size=(3, 3), activation="relu",padding = 'same'),
+        tfkl.Conv2D(64, kernel_size=(3, 3), activation="relu",padding = 'same'),
+        tfkl.MaxPooling2D(pool_size=(2, 2)),
+        tfkl.Dropout(0.25),
+        tfkl.Flatten(),
+        tfkl.Dense(512, activation='relu')
+    ]
+)
+
 class epsilon_model(tfk.Model):
     def __init__(self, config : generator_config, epsilon=0.05, name='') -> None:
         super(epsilon_model, self).__init__(name=name)
@@ -38,9 +55,9 @@ class epsilon_model(tfk.Model):
 class epsilon_3_model(tfk.Model):
     def __init__(self, config : generator_config, epsilon=0.05, name='') -> None:
         super(epsilon_3_model, self).__init__(name=name)
-        self.generator1 = epsilon_generator(config.n_classes, config.intermediate, epsilon)
-        self.generator2 = epsilon_generator(config.n_classes, config.intermediate, epsilon)
-        self.generator3 = epsilon_generator(config.n_classes, config.intermediate, epsilon)
+        self.generator1 = epsilon_generator(config.in_dim, config.n_classes, config.intermediate, epsilon)
+        self.generator2 = epsilon_generator(config.in_dim, config.n_classes, config.intermediate, epsilon)
+        self.generator3 = epsilon_generator(config.in_dim, config.n_classes, config.intermediate, epsilon)
         self.out = tfkl.Dense(config.n_classes, activation='softmax')
     def call(self, input_tensor):
         gen1 = self.generator1(input_tensor)
@@ -53,11 +70,11 @@ class epsilon_3_model(tfk.Model):
 class epsilon_5_model(tfk.Model):
     def __init__(self, config : generator_config, epsilon=0.05, name='') -> None:
         super(epsilon_5_model, self).__init__(name=name)
-        self.generator1 = epsilon_generator(config.n_classes, config.intermediate, epsilon)
-        self.generator2 = epsilon_generator(config.n_classes, config.intermediate, epsilon)
-        self.generator3 = epsilon_generator(config.n_classes, config.intermediate, epsilon)
-        self.generator4 = epsilon_generator(config.n_classes, config.intermediate, epsilon)
-        self.generator5 = epsilon_generator(config.n_classes, config.intermediate, epsilon)
+        self.generator1 = epsilon_generator(config.in_dim, config.n_classes, config.intermediate, epsilon)
+        self.generator2 = epsilon_generator(config.in_dim, config.n_classes, config.intermediate, epsilon)
+        self.generator3 = epsilon_generator(config.in_dim, config.n_classes, config.intermediate, epsilon)
+        self.generator4 = epsilon_generator(config.in_dim, config.n_classes, config.intermediate, epsilon)
+        self.generator5 = epsilon_generator(config.in_dim, config.n_classes, config.intermediate, epsilon)
         self.out = tfkl.Dense(config.n_classes, activation='softmax')
     def call(self, input_tensor):
         gen1 = self.generator1(input_tensor)
