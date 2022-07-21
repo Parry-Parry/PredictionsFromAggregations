@@ -39,7 +39,7 @@ class single_epsilon_generator(tfkl.Layer):
 
     @tf.function
     def _distr(self, tensor):
-        return tfp.distributions.Uniform(low=tensor-self.epsilon, high=tensor+self.epsilon)
+        return tfp.distributions.Uniform(low=tensor-self.epsilon, high=tensor+self.epsilon).sample()
     @tf.function
     def call(self, input_tensor):
         assert len(input_tensor.shape) == 4, "Incorrect shape passed"
