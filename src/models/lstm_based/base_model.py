@@ -48,8 +48,7 @@ class epsilon_model(tfk.Model):
         self.out = tfkl.Dense(config.n_classes, activation='softmax')
     def call(self, input_tensor):
         intermediate_values = self.generators(input_tensor)
-        intermediate = tf.reshape(intermediate_values, shape=(intermediate_values.shape[0], )) # MOVE ORIGINAL SHAPE IN HERE
-        merged = self.merger(intermediate)
+        merged = tf.math.reduce_mean(intermediate_values, axis=0)
         return self.out(merged)
 
 class epsilon_3_model(tfk.Model):
