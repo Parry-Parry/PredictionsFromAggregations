@@ -170,7 +170,12 @@ def main(args):
             test_acc_metric.update_state(y_batch, test_pred)
         test_acc = test_acc_metric.result()
 
-        results = Result(train_acc_store, val_acc_store, test_acc, history)
+        results = {
+            'train_acc' : train_acc_store, 
+            'val_acc' : val_acc_store, 
+            'test_acc' : test_acc, 
+            'history' : history
+            }
 
         logger.info("Saving History & Models")
 
