@@ -148,12 +148,6 @@ def main(args):
 
             train_acc_metric.reset_states()
 
-            if step % BATCH_SIZE == 0:
-                logger.info(
-                    "Training loss (for one batch) at step %d: %.4f"
-                    % (step, float(loss_value))
-                )
-
             for x_batch, y_batch in val_set:
                 val_pred = model(x_batch, training=False)
                 val_acc_metric.update_state(y_batch, val_pred)
