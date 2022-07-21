@@ -181,9 +181,9 @@ def main(args):
 
         logger.info("Saving History & Models")
 
-        with open(args.dir + "epsilon{}generator{}partions{}.pkl".format(epsilon, args.n_gen, args.partitions), 'wb') as file:
+        with open(args.dir + "/epsilon{}generator{}partions{}.pkl".format(epsilon, args.n_gen, args.partitions), 'wb') as file:
             pickle.dump(results, file)
-        model.save(args.dir + "epsilon{}generator{}partions{}.tf".format(epsilon, args.n_gen, args.partitions))
+        model.save(args.dir + "/epsilon{}generator{}partions{}.tf".format(epsilon, args.n_gen, args.partitions))
     
     return 0
 
