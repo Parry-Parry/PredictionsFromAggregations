@@ -26,7 +26,6 @@ class single_epsilon_generator(tfkl.Layer):
     """
     def __init__(self, in_dim, n_classes, intermediate=None, epsilon=0.05) -> None:
         super(single_epsilon_generator, self).__init__()
-        print(np.product(in_dim))
         self.intermediate = intermediate
         self.out = tfkl.Dense(n_classes, activation='softmax', name='generator_out')
         self.epsilon = tf.repeat(epsilon, repeats=np.product(in_dim))

@@ -109,7 +109,7 @@ def main(args):
     for epsilon in EPSILON:
         logger.info("Epsilon value on {} generator model: {}".format(args.n_gen, epsilon))
         intermediate = convnet((b, c, d))
-        config = generator_config((a, b, c, d), 10, n_classes, 4, intermediate, None)
+        config = generator_config((BATCH_SIZE, b, c, d), 10, n_classes, 4, intermediate, None)
         models ={
             3 : epsilon_3_model,
             5 : epsilon_5_model
