@@ -123,7 +123,9 @@ def main(args):
         optim = tfk.optimizers.Adam(learning_rate=LEARNING_RATE)
         loss_fn = tfk.losses.CategoricalCrossentropy()
 
-        results = Result(defaultdict(list), {}, 0, defaultdict(list))
+        train_acc_store = defaultdict(list)
+        val_acc_store = defaultdict(list)
+        history = defaultdict(list)
 
         train_acc_metric = tfk.metrics.CategoricalAccuracy()
         val_acc_metric = tfk.metrics.CategoricalAccuracy()
@@ -134,14 +136,14 @@ def main(args):
                 with tf.GradientTape() as tape:
                     pred = model(x_batch)
                     loss_value = loss_fn(y_batch, pred)
-                results.history[epoch].append(loss_value)
+                history[epoch].append(loss_value)
                 grads = tape.gradient(loss_value, model.trainable_weights)
                 optim.apply_gradients(zip(grads, model.trainable_weights))
 
                 train_acc_metric.update_state(y_batch, pred)
 
             train_acc = train_acc_metric.result()
-            results.acc[epoch].append(train_acc)
+            train_acc_store[epoch].append(train_acc)
             logger.info("Training acc over epoch: %.4f" % (float(train_acc),))
 
             train_acc_metric.reset_states()
@@ -156,7 +158,7 @@ def main(args):
                 val_pred = model(x_batch, training=False)
                 val_acc_metric.update_state(y_batch, val_pred)
             val_acc = val_acc_metric.result()
-            results.val_acc[epoch] = val_acc
+            val_acc_store[epoch] = val_acc
             val_acc_metric.reset_states()
 
         logger.info('Training Complete')
@@ -167,11 +169,12 @@ def main(args):
             test_pred = model(x_batch, training=False)
             test_acc_metric.update_state(y_batch, test_pred)
         test_acc = test_acc_metric.result()
-        results.test_acc += test_acc
+
+        results = Result(train_acc_store, val_acc_store, test_acc, history)
 
         logger.info("Saving History & Models")
 
-        with open(args.dir + "epsilon{}generator{}partions{}.pkl".format(epsilon, args.n_gen, args.partitions)) as file:
+        with open(args.dir + "epsilon{}generator{}partions{}.pkl".format(epsilon, args.n_gen, args.partitions), 'wb') as file:
             pickle.dump(results, file)
         model.save(args.dir + "epsilon{}generator{}partions{}.tf".format(epsilon, args.n_gen, args.partitions))
     
