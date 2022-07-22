@@ -156,6 +156,8 @@ def main(args):
             val_acc_store[epoch] = val_acc
             val_acc_metric.reset_states()
 
+            logger.info("Validation acc over epoch: {}".format(float(val_acc)))
+
         logger.info('Training Complete')
 
         test_acc_metric = tfk.metrics.CategoricalAccuracy()
