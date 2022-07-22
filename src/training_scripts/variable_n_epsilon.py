@@ -110,7 +110,7 @@ def main(args):
     for epsilon in EPSILON:
         logger.info("Epsilon value on {} generator model: {}".format(args.n_gen, epsilon))
         intermediate = convnet
-        config = generator_config((BATCH_SIZE, b, c, d), 10, n_classes, 4, intermediate, None)
+        config = generator_config((BATCH_SIZE, b, c, d), args.n_gen, n_classes, 4, intermediate, None)
         model = n_epsilon_model(config)
 
         optim = tfk.optimizers.Adam(learning_rate=args.lr)
