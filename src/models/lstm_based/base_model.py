@@ -52,7 +52,7 @@ class epsilon_model(tfk.Model):
 
 class n_epsilon_model(tfk.Model):
     def __init__(self, config : generator_config, epsilon=0.05, name='') -> None:
-        super(epsilon_model, self).__init__(name=name)
+        super(n_epsilon_model, self).__init__(name=name)
         self.generators = [epsilon_generator(in_dim=config.in_dim, n_classes=config.n_classes, intermediate=config.intermediate, epsilon=epsilon, name=str(n)) for n in range(config.n_gen)]
         self.out = tfkl.Dense(config.n_classes, activation='softmax')
     def call(self, input_tensor):
