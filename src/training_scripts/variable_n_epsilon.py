@@ -4,7 +4,7 @@ import argparse
 import logging
 from pathlib import Path, PurePath
 from collections import defaultdict
-from src.models.lstm_based.base_model import convnet, epsilon_model
+from src.models.lstm_based.base_model import convnet, n_epsilon_model
 
 from src.models.structures import *
 from src.models.intermediate_robust_generator.model import *
@@ -111,7 +111,7 @@ def main(args):
         logger.info("Epsilon value on {} generator model: {}".format(args.n_gen, epsilon))
         intermediate = convnet
         config = generator_config((BATCH_SIZE, b, c, d), 10, n_classes, 4, intermediate, None)
-        model = epsilon_model(config)
+        model = n_epsilon_model(config)
 
         optim = tfk.optimizers.Adam(learning_rate=args.lr)
         loss_fn = tfk.losses.CategoricalCrossentropy()

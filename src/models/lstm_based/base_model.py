@@ -50,6 +50,16 @@ class epsilon_model(tfk.Model):
         merged = tf.math.reduce_mean(intermediate_values, axis=0)
         return self.out(merged)
 
+class n_epsilon_model(tfk.Model):
+    def __init__(self, config : generator_config, epsilon=0.05, name='') -> None:
+        super(epsilon_model, self).__init__(name=name)
+        self.generators = [epsilon_generator(in_dim=config.in_dim, n_classes=config.n_classes, intermediate=config.intermediate, epsilon=epsilon, name=str(n)) for n in range(config.n_gen)]
+        self.out = tfkl.Dense(config.n_classes, activation='softmax')
+    def call(self, input_tensor):
+        intermediate_values = tf.stack([gen(input_tensor) for gen in self.generators], axis=0)
+        merged = tf.math.reduce_mean(intermediate_values, axis=0)
+        return self.out(merged)
+
 class epsilon_3_model(tfk.Model):
     def __init__(self, config : generator_config, epsilon=0.05, name='') -> None:
         super(epsilon_3_model, self).__init__(name=name)
