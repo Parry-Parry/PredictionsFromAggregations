@@ -1,43 +1,44 @@
+import pickle
 import os
 import argparse
 import logging
 from pathlib import Path, PurePath
-import pickle
+from collections import defaultdict
+from src.models.lstm_based.base_model import convnet, epsilon_model
 
-from src.models.lstm_based.base_model import lstm_based
 from src.models.structures import *
-from src.models.layers.image_layers import *
-from src.models.lstm_based.classification_heads import *
-from src.models.lstm_based.helper import *
+from src.models.intermediate_robust_generator.model import *
+from src.models.lstm_based.helper import retrieve_dataset, aggregate
 
 import tensorflow as tf
 import tensorflow.keras as tfk
 import tensorflow_addons as tfa
 
+import sklearn as sk
+import numpy as np
+
 parser = argparse.ArgumentParser(description='Training of stochastic LSTM based classifier for images')
 
 parser.add_argument('-dataset', type=str, default=None, help='Training Dataset, Supported: CIFAR10 & CIFAR100, MNIST')
 parser.add_argument('-partitions', type=int, help='How much aggregation to perform upon the dataset')
-parser.add_argument('-stochastic', default='epsilon', choices=['dense', 'reparam', 'gumbal', 'epsilon'], help='Type of Stochastic generator, defaults to naive dense')
-parser.add_argument('-partition_path', default=None, help='Where to retrieve and save aggregate data')
 parser.add_argument('-epochs', type=int, default=15, help='Number of epochs to train')
+parser.add_argument('-n_gen', type=int, default=3, help='Number of generators')
 
 parser.add_argument('--data_path', type=str, help='Training Data Path')
-parser.add_argument('--pretrain', help='Use a Pretrained classification head')
+parser.add_argument('--partition_path', type=str, help='Where to retrieve and save aggregate data')
 parser.add_argument('--dir', type=str, help='Directory to store final model')
-parser.add_argument('--random', type=int, help='Seed for random generator')
+parser.add_argument('--seed', type=int, help='Seed for random generator')
+parser.add_argument('--lr', type=float, default=0.0001, help='Learning Rate, Default 0.0001')
 
-generators = {
-    'dense' : dense_noise_generator,
-    'reparam' : dense_reparam_generator,
-    'gumbal' : None,
-    'epsilon' : epsilon_generator,
-}
+
+BUFFER = 2048
+BATCH_SIZE = 128
+EPSILON = [0.001, 0.005, 0.01, 0.05, 0.1]
 
 def main(args):
     args = parser.parse_args()
     logger = logging.getLogger(__name__)
-    print(args.dataset)
+
     logger.info('Building Dataset')
     if not args.dataset and not args.data_path:
         logger.error('A dataset has not been specified')
@@ -46,7 +47,6 @@ def main(args):
     if args.partition_path:
         """Check path formatting and either create or access partition directory"""
         p = Path(args.partition_path)
-        print(p)
         if p.exists():
             if not p.is_dir:
                 logger.warning('Invalid Partition Path, File Given')
@@ -78,49 +78,110 @@ def main(args):
     if args.partitions == 1:
         mean = 1
     else:
-        mean, dataset = aggregate(dataset, args.partitions, partitions, args.random)
+        mean, shape, dataset = aggregate(dataset, args.partitions, args.partition_path, args.seed)
+
+    if len(shape) == 3:
+        a, b, c = shape
+        d = 1
+    else:
+        a, b, c, d = shape
+
+    n_classes = len(np.unique(dataset.y_train))
+
+    if len(dataset.x_train.shape) == 3:
+        x_train = np.expand_dims(dataset.x_train, axis=-1)
+        x_test = np.expand_dims(dataset.x_test, axis=-1)
+    else:
+        x_train = dataset.x_train
+        x_test = dataset.x_test
+    y_train = tfk.utils.to_categorical(dataset.y_train, n_classes)
+    y_test = tfk.utils.to_categorical(dataset.y_test, n_classes)
+
+    x_train, x_val, y_train, y_val = sk.model_selection.train_test_split(x_train, y_train, test_size=0.1, random_state=args.seed)
+    """I present the current worst function in the codebase"""
+    tf_convert = lambda x, y, types : (tf.data.Dataset.from_tensor_slices((tf.cast(x, types[0]), tf.cast(y, types[1])))).shuffle(BUFFER).batch(BATCH_SIZE, drop_remainder=True).cache().prefetch(tf.data.AUTOTUNE)
+
+    train_set = tf_convert(x_train, y_train, [tf.float32, tf.uint8])
+    test_set = tf_convert(x_test, y_test, [tf.float32, tf.uint8])
+    val_set = tf_convert(x_val, y_val, [tf.float32, tf.uint8])
 
     logger.info('Dataset Complete')
 
-    _, a, b, c = dataset.x_train.shape
-    stochastic = generators[args.stochastic](a * b * c)
-    lstm = Layer(mean, None)
-    n_classes = len(np.unique(dataset.y_train))
-    if args.pretrain:
-        out = pretrained_classification(n_classes)
-    else:
-        out = dense_classification(n_classes)
+    for epsilon in EPSILON:
+        logger.info("Epsilon value on {} generator model: {}".format(args.n_gen, epsilon))
+        intermediate = convnet
+        config = generator_config((BATCH_SIZE, b, c, d), 10, n_classes, 4, intermediate, None)
+        model = epsilon_model(config)
 
-    config = Config(stochastic, lstm, out)
+        optim = tfk.optimizers.Adam(learning_rate=args.lr)
+        loss_fn = tfk.losses.CategoricalCrossentropy()
 
-    logger.info('Building Model')
-    model = lstm_based(config)
+        train_acc_store = defaultdict(list)
+        val_acc_store = defaultdict(list)
+        history = defaultdict(list)
 
-    step = tf.Variable(0, trainable=False)
-    schedule = tf.optimizers.schedules.PiecewiseConstantDecay(
-    [10000, 15000], [1e-0, 1e-1, 1e-2])
-    lr = 1e-1 * schedule(step)
-    wd = lambda: 1e-4 * schedule(step)
+        train_acc_metric = tfk.metrics.CategoricalAccuracy()
+        val_acc_metric = tfk.metrics.CategoricalAccuracy()
 
-    optim = tfa.optimizers.AdamW(learning_rate=lr, weight_decay=wd)
-    loss_func = tfk.losses.CategoricalCrossentropy()
-    metrics = [None]
+        for epoch in range(args.epochs):
+            logger.info('Epoch {}...'.format(epoch))
+            for step, (x_batch, y_batch) in enumerate(train_set): 
+                with tf.GradientTape() as tape:
+                    pred = model(x_batch)
+                    loss_value = loss_fn(y_batch, pred)
+                history[epoch].append(loss_value)
+                grads = tape.gradient(loss_value, model.trainable_weights)
+                optim.apply_gradients(zip(grads, model.trainable_weights))
 
-    model.compile(optimizer=optim, loss=loss_func, metrics=metrics)
-    logger.info('Training {} generation LSTM Model for {} epochs'.format(args.stochastic, args.epochs))
+                train_acc_metric.update_state(y_batch, pred)
 
-    history = model.fit(dataset.x_train, dataset.y_train, epochs=args.epochs)
-    logger.info('Training Complete')
+            train_acc = train_acc_metric.result()
+            train_acc_store[epoch].append(train_acc)
+            logger.info("Training acc over epoch: {}, loss: {}".format(float(train_acc), float(loss_value)))
 
-    with open(parser.dir, 'wb') as f:
-        pickle.dump(history.history, f)
+            train_acc_metric.reset_states()
+
+            for x_batch, y_batch in val_set:
+                val_pred = model(x_batch, training=False)
+                val_acc_metric.update_state(y_batch, val_pred)
+            val_acc = val_acc_metric.result()
+            val_acc_store[epoch] = val_acc
+            val_acc_metric.reset_states()
+
+            logger.info("Validation acc over epoch: {}".format(float(val_acc)))
+
+        logger.info('Training Complete')
+
+        test_acc_metric = tfk.metrics.CategoricalAccuracy()
+
+        for x_batch, y_batch in test_set:
+            test_pred = model(x_batch, training=False)
+            test_acc_metric.update_state(y_batch, test_pred)
+        test_acc = test_acc_metric.result()
+
+        logger.info("Test Accuracy: {}".format(test_acc))
+
+        results = {
+            'train_acc' : train_acc_store, 
+            'val_acc' : val_acc_store, 
+            'test_acc' : test_acc, 
+            'history' : history
+            }
+
+        logger.info("Saving History & Models")
+
+        with open(args.dir + "/epsilon{}generator{}partitions{}.pkl".format(epsilon, args.n_gen, args.partitions), 'wb') as file:
+            pickle.dump(results, file)
+        #model.save(args.dir + "/epsilon{}generator{}partitions{}.tf".format(epsilon, args.n_gen, args.partitions))
+    
+    return 0
 
 
 if __name__ == '__main__':
     log_fmt = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
     logging.basicConfig(level=logging.INFO, format=log_fmt)    
-    main(parser.parse_args())
-
-
-
-
+    code = main(parser.parse_args())
+    if code == 0:
+        print("Executed Successfully")
+    else:
+        print("Error see logs")
