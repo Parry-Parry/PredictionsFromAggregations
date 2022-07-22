@@ -36,7 +36,7 @@ class single_epsilon_generator(tfkl.Layer):
         config = super().get_config().copy()
         config.update({
             'n_classes' : self.n_classes,
-            'in_dim' : self.in_dim
+            'in_dim' : self.in_dim,
             'epsilon': self.epsilon
         })
         return config
