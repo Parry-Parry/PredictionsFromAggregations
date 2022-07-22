@@ -38,6 +38,7 @@ class single_epsilon_generator(tfkl.Layer):
             'n_classes' : self.n_classes,
             'in_dim' : self.in_dim,
             'epsilon': self.epsilon
+            'intermediate' : self.intermediate
         })
         return config
 
