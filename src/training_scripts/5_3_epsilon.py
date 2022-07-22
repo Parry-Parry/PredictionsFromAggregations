@@ -28,10 +28,11 @@ parser.add_argument('--data_path', type=str, help='Training Data Path')
 parser.add_argument('--partition_path', type=str, help='Where to retrieve and save aggregate data')
 parser.add_argument('--dir', type=str, help='Directory to store final model')
 parser.add_argument('--seed', type=int, help='Seed for random generator')
+parser.add_argument('--lr', type=float, default=0.0001, help='Learning Rate, Default 0.0001')
+
 
 BUFFER = 2048
 BATCH_SIZE = 128
-LEARNING_RATE = 0.0001
 EPSILON = [0.001, 0.005, 0.01, 0.05, 0.1]
 
 def main(args):
@@ -120,7 +121,7 @@ def main(args):
             print("No model matched n_gen value: {}".format(args.n_gen))
             return 2
 
-        optim = tfk.optimizers.Adam(learning_rate=LEARNING_RATE)
+        optim = tfk.optimizers.Adam(learning_rate=args.lr)
         loss_fn = tfk.losses.CategoricalCrossentropy()
 
         train_acc_store = defaultdict(list)
@@ -175,9 +176,9 @@ def main(args):
 
         logger.info("Saving History & Models")
 
-        with open(args.dir + "/epsilon{}generator{}partions{}.pkl".format(epsilon, args.n_gen, args.partitions), 'wb') as file:
+        with open(args.dir + "/epsilon{}generator{}partitions{}.pkl".format(epsilon, args.n_gen, args.partitions), 'wb') as file:
             pickle.dump(results, file)
-        #model.save(args.dir + "/epsilon{}generator{}partions{}.tf".format(epsilon, args.n_gen, args.partitions))
+        #model.save(args.dir + "/epsilon{}generator{}partitions{}.tf".format(epsilon, args.n_gen, args.partitions))
     
     return 0
 
