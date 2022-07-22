@@ -42,7 +42,6 @@ Result = namedtuple(
     'fit_result',
     [
         'acc',
-        'val_acc',
         'test_acc',
         'history'
     ]

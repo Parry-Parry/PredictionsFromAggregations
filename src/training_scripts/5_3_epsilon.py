@@ -97,13 +97,11 @@ def main(args):
     y_train = tfk.utils.to_categorical(dataset.y_train, n_classes)
     y_test = tfk.utils.to_categorical(dataset.y_test, n_classes)
 
-    x_train, x_val, y_train, y_val = sk.model_selection.train_test_split(x_train, y_train, test_size=0.1, random_state=args.seed)
     """I present the current worst function in the codebase"""
     tf_convert = lambda x, y, types : (tf.data.Dataset.from_tensor_slices((tf.cast(x, types[0]), tf.cast(y, types[1])))).shuffle(BUFFER).batch(BATCH_SIZE, drop_remainder=True).cache().prefetch(tf.data.AUTOTUNE)
 
     train_set = tf_convert(x_train, y_train, [tf.float32, tf.uint8])
     test_set = tf_convert(x_test, y_test, [tf.float32, tf.uint8])
-    val_set = tf_convert(x_val, y_val, [tf.float32, tf.uint8])
 
     logger.info('Dataset Complete')
 
@@ -125,11 +123,9 @@ def main(args):
         loss_fn = tfk.losses.CategoricalCrossentropy()
 
         train_acc_store = defaultdict(list)
-        val_acc_store = defaultdict(list)
         history = defaultdict(list)
 
         train_acc_metric = tfk.metrics.CategoricalAccuracy()
-        val_acc_metric = tfk.metrics.CategoricalAccuracy()
 
         for epoch in range(args.epochs):
             logger.info('Epoch {}...'.format(epoch))
@@ -149,15 +145,6 @@ def main(args):
 
             train_acc_metric.reset_states()
 
-            for x_batch, y_batch in val_set:
-                val_pred = model(x_batch, training=False)
-                val_acc_metric.update_state(y_batch, val_pred)
-            val_acc = val_acc_metric.result()
-            val_acc_store[epoch] = val_acc
-            val_acc_metric.reset_states()
-
-            logger.info("Validation acc over epoch: {}".format(float(val_acc)))
-
         logger.info('Training Complete')
 
         test_acc_metric = tfk.metrics.CategoricalAccuracy()
@@ -171,7 +158,6 @@ def main(args):
 
         results = {
             'train_acc' : train_acc_store, 
-            'val_acc' : val_acc_store, 
             'test_acc' : test_acc, 
             'history' : history
             }
