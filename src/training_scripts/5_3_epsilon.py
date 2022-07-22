@@ -144,7 +144,7 @@ def main(args):
 
             train_acc = train_acc_metric.result()
             train_acc_store[epoch].append(train_acc)
-            logger.info("Training acc over epoch: %.4f" % (float(train_acc),))
+            logger.info("Training acc over epoch: {}, loss: {}".format(float(train_acc), float(loss_value)))
 
             train_acc_metric.reset_states()
 
