@@ -24,9 +24,9 @@ class single_epsilon_generator(tfkl.Layer):
     :param int n_generator: The number of samples to be generated from the centroid
     :param float epsilon: Hyperparameter control the size of the neighbourhood
     """
-    def __init__(self, in_dim, n_classes, intermediate=None, epsilon=0.05) -> None:
-        super(single_epsilon_generator, self).__init__()
-        self.intermediate = intermediate
+    def __init__(self, in_dim, n_classes, intermediate=None, epsilon=0.05, **kwargs) -> None:
+        super(single_epsilon_generator, self).__init__(**kwargs)
+        self.intermediate = intermediate(in_dim[1:])
         self.out = tfkl.Dense(n_classes, activation='softmax', name='generator_out')
         self.epsilon = tf.repeat(epsilon, repeats=np.product(in_dim))
     
