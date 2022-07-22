@@ -5,7 +5,6 @@ import logging
 from pathlib import Path, PurePath
 from collections import defaultdict
 
-from src.models.lstm_based.base_model import epsilon_3_model, epsilon_5_model
 from src.models.structures import *
 from src.models.layers.custom_layers import convnet
 from src.models.intermediate_robust_generator.model import *
@@ -105,69 +104,60 @@ def main(args):
     test_set = tf_convert(x_test, y_test, [tf.float32, tf.uint8])
 
     logger.info('Dataset Complete')
+    intermediate = convnet
+    config = generator_config((BATCH_SIZE, b, c, d), 10, n_classes, 4, intermediate, None)
 
-    for epsilon in EPSILON:
-        logger.info("Epsilon value on {} generator model: {}".format(args.n_gen, epsilon))
-        intermediate = convnet
-        config = generator_config((BATCH_SIZE, b, c, d), 10, n_classes, 4, intermediate, None)
-        models ={
-            3 : epsilon_3_model,
-            5 : epsilon_5_model
+    model = generator_model(config)
+
+    optim = tfk.optimizers.Adam(learning_rate=args.lr)
+    loss_fn = distance_loss()
+
+    train_acc_store = defaultdict(list)
+    history = defaultdict(list)
+
+    train_acc_metric = tfk.metrics.CategoricalAccuracy()
+
+    for epoch in range(args.epochs):
+        logger.info('Epoch {}...'.format(epoch))
+        for step, (x_batch, y_batch) in enumerate(train_set): 
+            with tf.GradientTape() as tape:
+                pred, preds = model(x_batch, training=True)
+                weights = [generator.get_layer("generator_dense").weights for generator in model.generators]
+                loss_value = loss_fn(y_batch, weights, preds)
+            history[epoch].append(loss_value)
+            grads = tape.gradient(loss_value, model.trainable_weights)
+            optim.apply_gradients(zip(grads, model.trainable_weights))
+
+            train_acc_metric.update_state(y_batch, pred)
+
+        train_acc = train_acc_metric.result()
+        train_acc_store[epoch].append(train_acc)
+        logger.info("Training acc over epoch: {}, loss: {}".format(float(train_acc), float(loss_value)))
+
+        train_acc_metric.reset_states()
+
+    logger.info('Training Complete')
+
+    test_acc_metric = tfk.metrics.CategoricalAccuracy()
+
+    for x_batch, y_batch in test_set:
+        test_pred = model(x_batch, training=False)
+        test_acc_metric.update_state(y_batch, test_pred)
+    test_acc = test_acc_metric.result()
+
+    logger.info("Test Accuracy: {}".format(test_acc))
+
+    results = {
+        'train_acc' : train_acc_store, 
+        'test_acc' : test_acc, 
+        'history' : history
         }
-        try:
-            model = models[args.n_gen](config, epsilon)
-        except KeyError:
-            print("No model matched n_gen value: {}".format(args.n_gen))
-            return 2
 
-        optim = tfk.optimizers.Adam(learning_rate=args.lr)
-        loss_fn = tfk.losses.CategoricalCrossentropy()
+    logger.info("Saving History & Models")
 
-        train_acc_store = defaultdict(list)
-        history = defaultdict(list)
-
-        train_acc_metric = tfk.metrics.CategoricalAccuracy()
-
-        for epoch in range(args.epochs):
-            logger.info('Epoch {}...'.format(epoch))
-            for step, (x_batch, y_batch) in enumerate(train_set): 
-                with tf.GradientTape() as tape:
-                    pred = model(x_batch)
-                    loss_value = loss_fn(y_batch, pred)
-                history[epoch].append(loss_value)
-                grads = tape.gradient(loss_value, model.trainable_weights)
-                optim.apply_gradients(zip(grads, model.trainable_weights))
-
-                train_acc_metric.update_state(y_batch, pred)
-
-            train_acc = train_acc_metric.result()
-            train_acc_store[epoch].append(train_acc)
-            logger.info("Training acc over epoch: {}, loss: {}".format(float(train_acc), float(loss_value)))
-
-            train_acc_metric.reset_states()
-
-        logger.info('Training Complete')
-
-        test_acc_metric = tfk.metrics.CategoricalAccuracy()
-
-        for x_batch, y_batch in test_set:
-            test_pred = model(x_batch, training=False)
-            test_acc_metric.update_state(y_batch, test_pred)
-        test_acc = test_acc_metric.result()
-
-        logger.info("Test Accuracy: {}".format(test_acc))
-
-        results = {
-            'train_acc' : train_acc_store, 
-            'test_acc' : test_acc, 
-            'history' : history
-            }
-
-        logger.info("Saving History & Models")
-
-        with open(args.dir + "/epsilon{}generator{}partitions{}.pkl".format(epsilon, args.n_gen, args.partitions), 'wb') as file:
-            pickle.dump(results, file)
-        #model.save(args.dir + "/epsilon{}generator{}partitions{}.tf".format(epsilon, args.n_gen, args.partitions))
+    with open(args.dir + "/{}generator{}partitions{}.pkl".format(args.dataset, args.n_gen, args.partitions), 'wb') as file:
+        pickle.dump(results, file)
+    #model.save(args.dir + "/epsilon{}generator{}partitions{}.tf".format(epsilon, args.n_gen, args.partitions))
     
     return 0
 

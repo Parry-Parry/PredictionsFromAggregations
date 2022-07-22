@@ -23,23 +23,6 @@ class lstm_based(tfk.Model):
     
     return self.output(x)
 
-def convnet(in_dim : tuple):
-    return tfk.Sequential(
-    [
-        tfk.Input(shape=in_dim),
-        tfkl.Conv2D(32, kernel_size=(3, 3), activation="relu",padding = 'same'),
-        tfkl.Conv2D(32, kernel_size=(3, 3), activation="relu",padding = 'same'),
-        tfkl.MaxPooling2D(pool_size=(2, 2)),
-        tfkl.Dropout(0.25),
-        tfkl.Conv2D(64, kernel_size=(3, 3), activation="relu",padding = 'same'),
-        tfkl.Conv2D(64, kernel_size=(3, 3), activation="relu",padding = 'same'),
-        tfkl.MaxPooling2D(pool_size=(2, 2)),
-        tfkl.Dropout(0.25),
-        tfkl.Flatten(),
-        tfkl.Dense(512, activation='relu')
-    ]
-)
-
 class epsilon_model(tfk.Model):
     def __init__(self, config : generator_config, epsilon=0.05, name='') -> None:
         super(epsilon_model, self).__init__(name=name)
