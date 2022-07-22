@@ -26,6 +26,8 @@ class single_epsilon_generator(tfkl.Layer):
     """
     def __init__(self, in_dim, n_classes, intermediate=None, epsilon=0.05, **kwargs) -> None:
         super(single_epsilon_generator, self).__init__(**kwargs)
+        self.in_dim = in_dim
+        self.n_classes = n_classes
         self.intermediate = intermediate(in_dim[1:])
         self.out = tfkl.Dense(n_classes, activation='softmax', name='generator_out')
         self.epsilon = tf.repeat(epsilon, repeats=np.product(in_dim))
@@ -33,6 +35,8 @@ class single_epsilon_generator(tfkl.Layer):
     def get_config(self):
         config = super().get_config().copy()
         config.update({
+            'n_classes' : self.n_classes,
+            'in_dim' : self.in_dim
             'epsilon': self.epsilon
         })
         return config
