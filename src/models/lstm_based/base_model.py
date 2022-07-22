@@ -43,8 +43,7 @@ def convnet(in_dim : tuple):
 class epsilon_model(tfk.Model):
     def __init__(self, config : generator_config, epsilon=0.05, name='') -> None:
         super(epsilon_model, self).__init__(name=name)
-        self.generators = MultiHead(epsilon_generator(config.in_dim, config.n_classes, config.intermediate, epsilon), layer_num=config.n_gen, name='Generators')
-        self.merger = config.merger
+        self.generators = MultiHead(epsilon_generator(in_dim=config.in_dim, n_classes=config.n_classes, intermediate=config.intermediate, epsilon=epsilon), layer_num=config.n_gen, name='Generators')
         self.out = tfkl.Dense(config.n_classes, activation='softmax')
     def call(self, input_tensor):
         intermediate_values = self.generators(input_tensor)
