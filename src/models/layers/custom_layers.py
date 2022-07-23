@@ -27,7 +27,7 @@ class generator_block(tfkl.Layer):
     def __init__(self, in_dim, scale, n_classes, n, intermediate=None, **kwargs) -> None:
         super(generator_block, self).__init__(name='generator{}'.format(n), **kwargs)
         self.in_dim = in_dim
-        self.generator = tfkl.Dense(tfm.reduce_prod(in_dim[1:]), input_shape=in_dim, activation='relu', name='generator_dense')
+        self.generator = tfkl.Dense(tfm.reduce_prod(in_dim[1:]), input_shape=(None, tfm.reduce_prod(self.in_dim[1:])), activation='relu', name='generator_dense')
         self.intermediate = intermediate(in_dim[1:])
         self.out = tfkl.Dense(n_classes, activation='softmax', name='generator_out')
     
