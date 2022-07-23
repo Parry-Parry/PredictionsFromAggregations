@@ -1,4 +1,5 @@
 import tensorflow.keras as tfk
+import tensorflow.math as tfm
 from tensorflow.keras import layers as tfkl
 import tensorflow as tf
 import tensorflow_probability as tfp
@@ -25,8 +26,9 @@ def convnet(in_dim : tuple):
 class generator_block(tfkl.Layer):
     def __init__(self, in_dim, scale, n_classes, n, intermediate=None, **kwargs) -> None:
         super(generator_block, self).__init__(name='generator{}'.format(n), **kwargs)
-        self.generator = tfkl.Dense(np.product(in_dim[1:]), input_shape=in_dim, activation='relu', name='generator_dense')
-        self.intermediate = intermediate(in_dim)
+        self.in_dim = in_dim
+        self.generator = tfkl.Dense(tfm.reduce_prod(in_dim[1:]), input_shape=in_dim, activation='relu', name='generator_dense')
+        self.intermediate = intermediate(in_dim[1:])
         self.out = tfkl.Dense(n_classes, activation='softmax', name='generator_out')
     
     def get_config(self):
@@ -39,10 +41,13 @@ class generator_block(tfkl.Layer):
         })
         return config
 
-    @tf.function
+    #@tf.function
     def call(self, input_tensor, training=False):
+        x = input_tensor
         if training:
-            x = self.generator(input_tensor)
+            x = tf.reshape(x, (self.in_dim[0], tfm.reduce_prod(self.in_dim[1:])))
+            x = self.generator(x)
+            x = tf.reshape(x, self.in_dim)
         if self.intermediate: x = self.intermediate(x)
         return self.out(x)
         
@@ -53,7 +58,7 @@ class single_epsilon_generator(tfkl.Layer):
         self.n_classes = n_classes
         self.intermediate = intermediate(in_dim[1:])
         self.out = tfkl.Dense(n_classes, activation='softmax', name='generator_out')
-        self.epsilon = tf.repeat(epsilon, repeats=np.product(in_dim))
+        self.epsilon = tf.repeat(epsilon, repeats=tfm.reduce_prod(in_dim))
     
     def get_config(self):
         config = super().get_config().copy()
