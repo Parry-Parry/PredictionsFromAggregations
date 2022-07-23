@@ -9,7 +9,7 @@ import numpy as np
 def convnet(in_dim : tuple):
     return tfk.Sequential(
     [
-        tfk.Input(shape=in_dim),
+        tfk.Input(shape=(None, ) + in_dim[1:]),
         tfkl.Conv2D(32, kernel_size=(3, 3), activation="relu",padding = 'same'),
         tfkl.Conv2D(32, kernel_size=(3, 3), activation="relu",padding = 'same'),
         tfkl.MaxPooling2D(pool_size=(2, 2)),
@@ -34,14 +34,12 @@ class generator_block(tfkl.Layer):
     def get_config(self):
         config = super().get_config().copy()
         config.update({
-            'n_classes' : self.n_classes,
             'in_dim' : self.in_dim,
-            'scale' : self.scale,
             'intermediate' : self.intermediate
         })
         return config
 
-    #@tf.function
+    @tf.function
     def call(self, input_tensor, training=False):
         x = input_tensor
         if training:
@@ -75,15 +73,15 @@ class single_epsilon_generator(tfkl.Layer):
         
     @tf.function
     def call(self, input_tensor, training=False):
-        assert len(input_tensor.shape) == 4, "Incorrect shape passed"
-        a, b, c, d = input_tensor.shape
+        shape = input_tensor.shape
+        assert len(shape) == 4, "Incorrect shape passed"
         x = tf.reshape(input_tensor, [-1])
         if training: 
             x = self._distr(x)
         if self.intermediate: 
-            x = tf.reshape(x, [a, b, c, d])
+            x = tf.reshape(x, shape)
             x = self.intermediate(x)
         else:
-            x = tf.reshape(x, [a, np.product([b, c, d])])
+            x = tf.reshape(x, [shape[0], tfm.reduce_sum(shape[1:])])
         return self.out(x)
        
