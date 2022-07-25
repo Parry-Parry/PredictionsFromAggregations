@@ -9,12 +9,12 @@ import numpy as np
 def convnet(in_dim):
     return tfk.Sequential(
     [
-        tfkl.Conv2D(32, kernel_size=(3, 3), input_shape=in_dim, activation="relu",padding = 'same'),
-        tfkl.Conv2D(32, kernel_size=(3, 3), activation="relu",padding = 'same'),
+        tfkl.Conv2D(32, kernel_size=(3, 3), input_shape=in_dim, activation="relu",padding='same'),
+        tfkl.Conv2D(32, kernel_size=(3, 3), activation="relu",padding='same'),
         tfkl.MaxPooling2D(pool_size=(2, 2)),
         tfkl.Dropout(0.25),
-        tfkl.Conv2D(64, kernel_size=(3, 3), activation="relu",padding = 'same'),
-        tfkl.Conv2D(64, kernel_size=(3, 3), activation="relu",padding = 'same'),
+        tfkl.Conv2D(64, kernel_size=(3, 3), activation="relu",padding='same'),
+        tfkl.Conv2D(64, kernel_size=(3, 3), activation="relu",padding='same'),
         tfkl.MaxPooling2D(pool_size=(2, 2)),
         tfkl.Dropout(0.25),
         tfkl.Flatten(),
@@ -26,7 +26,7 @@ class generator_block(tfkl.Layer):
     def __init__(self, in_dim, scale, n_classes, n, intermediate=None, **kwargs) -> None:
         super(generator_block, self).__init__(name='generator{}'.format(n), **kwargs)
         self.in_dim = in_dim
-        self.generator = tfkl.Dense(tfm.reduce_prod(in_dim[1:]), input_shape=(None, tfm.reduce_prod(self.in_dim[1:])), activation='relu', name='generator_dense')
+        self.generator = tfkl.Dense(tfm.reduce_prod(in_dim[1:]), activation='relu', name='generator_dense')
         self.intermediate = intermediate(in_dim[1:])
         self.out = tfkl.Dense(n_classes, activation='softmax', name='generator_out')
     
@@ -38,14 +38,13 @@ class generator_block(tfkl.Layer):
         })
         return config
 
-    @tf.function
+    #@tf.function
     def call(self, input_tensor, training=False):
         x = input_tensor
         if training:
             x = tf.reshape(x, (self.in_dim[0], tfm.reduce_prod(self.in_dim[1:])))
             x = self.generator(x)
             x = tf.reshape(x, self.in_dim)
-            print(x.shape)
         if self.intermediate: x = self.intermediate(x)
         return self.out(x)
         
