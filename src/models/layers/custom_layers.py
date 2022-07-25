@@ -9,7 +9,7 @@ import numpy as np
 def convnet(in_dim):
     return tfk.Sequential(
     [
-        tfkl.Conv2D(32, kernel_size=(3, 3), input_shape=in_dim, activation="relu",padding='same'),
+        tfkl.Conv2D(32, kernel_size=(3, 3), activation="relu",padding='same'),
         tfkl.Conv2D(32, kernel_size=(3, 3), activation="relu",padding='same'),
         tfkl.MaxPooling2D(pool_size=(2, 2)),
         tfkl.Dropout(0.25),
