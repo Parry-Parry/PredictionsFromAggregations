@@ -122,7 +122,7 @@ def main(args):
         for step, (x_batch, y_batch) in enumerate(train_set): 
             with tf.GradientTape() as tape:
                 pred, preds = model(x_batch, training=True)
-                print(pred)
+                print(preds)
                 weights = [gen.generator.weights[0] for gen in model.generators]
                 loss_value = loss_fn(y_batch, weights, preds)
             history[epoch].append(loss_value)
