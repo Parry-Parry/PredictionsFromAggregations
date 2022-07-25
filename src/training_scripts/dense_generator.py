@@ -123,6 +123,7 @@ def main(args):
             with tf.GradientTape() as tape:
                 pred, preds = model(x_batch, training=True)
                 weights = [gen.generator.weights for gen in model.generators]
+                print(weights[0])
                 loss_value = loss_fn(y_batch, weights, preds)
             history[epoch].append(loss_value)
             grads = tape.gradient(loss_value, model.trainable_weights)
