@@ -110,7 +110,7 @@ def main(args):
     model = generator_model(config)
 
     optim = tfk.optimizers.Adam(learning_rate=args.lr)
-    loss_fn = distance_loss()
+    loss_fn = distance_loss
 
     train_acc_store = defaultdict(list)
     history = defaultdict(list)
