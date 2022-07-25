@@ -45,6 +45,7 @@ class generator_block(tfkl.Layer):
             x = tf.reshape(x, (self.in_dim[0], tfm.reduce_prod(self.in_dim[1:])))
             x = self.generator(x)
             x = tf.reshape(x, self.in_dim)
+            print(x.shape)
         if self.intermediate: x = self.intermediate(x)
         return self.out(x)
         
