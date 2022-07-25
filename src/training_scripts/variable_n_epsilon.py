@@ -123,8 +123,8 @@ def main(args):
             logger.info('Epoch {}...'.format(epoch))
             for step, (x_batch, y_batch) in enumerate(train_set): 
                 with tf.GradientTape() as tape:
-                    pred = model(x_batch)
-                    loss_value = loss_fn(y_batch, pred)
+                    pred, preds = model(x_batch, training=True)
+                    loss_value = loss_fn(y_batch, preds)
                 history[epoch].append(loss_value)
                 grads = tape.gradient(loss_value, model.trainable_weights)
                 optim.apply_gradients(zip(grads, model.trainable_weights))

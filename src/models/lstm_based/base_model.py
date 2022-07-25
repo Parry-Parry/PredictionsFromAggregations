@@ -1,8 +1,7 @@
 import tensorflow.keras as tfk 
 import tensorflow.keras.layers as tfkl
+import tensorflow.math as tfm
 import tensorflow as tf
-
-from keras_multi_head import MultiHead
 
 from src.models.structures import *
 from src.models.layers.custom_layers import single_epsilon_generator as epsilon_generator
@@ -23,67 +22,21 @@ class lstm_based(tfk.Model):
     
     return self.output(x)
 
-class epsilon_model(tfk.Model):
-    def __init__(self, config : generator_config, epsilon=0.05, name='') -> None:
-        super(epsilon_model, self).__init__(name=name)
-        self.generators = MultiHead(epsilon_generator(in_dim=config.in_dim, n_classes=config.n_classes, intermediate=config.intermediate, epsilon=epsilon), layer_num=config.n_gen, name='Generators')
-        self.out = tfkl.Dense(config.n_classes, activation='softmax')
-    def call(self, input_tensor):
-        intermediate_values = self.generators(input_tensor)
-        merged = tf.math.reduce_mean(intermediate_values, axis=0)
-        return self.out(merged)
-
 class n_epsilon_model(tfk.Model):
     def __init__(self, config : generator_config, epsilon=0.05, name='') -> None:
         super(n_epsilon_model, self).__init__(name=name)
         self.generators = [epsilon_generator(in_dim=config.in_dim, n_classes=config.n_classes, intermediate=config.intermediate, epsilon=epsilon, name=str(n)) for n in range(config.n_gen)]
-        self.out = tfkl.Dense(config.n_classes, activation='softmax')
-    def call(self, input_tensor):
-        intermediate_values = tf.stack([gen(input_tensor) for gen in self.generators], axis=0)
-        merged = tf.math.reduce_mean(intermediate_values, axis=0)
-        return self.out(merged)
 
+    def _max_proba(self, proba):
+        totals = tfm.reduce_sum(proba, axis=0)
 
-class n_epsilon_model(tfk.Model):
-    def __init__(self, config : generator_config, epsilon=0.05, name='') -> None:
-        super(n_epsilon_model, self).__init__(name=name)
-        self.generators = [epsilon_generator(in_dim=config.in_dim, n_classes=config.n_classes, intermediate=config.intermediate, epsilon=epsilon, name=str(n)) for n in range(config.n_gen)]
-        self.out = tfkl.Dense(config.n_classes, activation='softmax')
-    def call(self, input_tensor):
-        intermediate_values = tf.stack([gen(input_tensor) for gen in self.generators], axis=0)
-        merged = tf.math.reduce_mean(intermediate_values, axis=0)
-        return self.out(merged)
+        return tf.one_hot(tf.argmax(totals), depth=1, on_value=1, off_value=0)
+
+    def call(self, input_tensor, training=False):
+        intermediate_values = tf.stack([gen(input_tensor, training) for gen in self.generators], axis=0)
+        if training: return self._max_proba(intermediate_values), intermediate_values
+
+        return self._max_proba(intermediate_values)
         
-class epsilon_3_model(tfk.Model):
-    def __init__(self, config : generator_config, epsilon=0.05, name='') -> None:
-        super(epsilon_3_model, self).__init__(name=name)
-        self.generator1 = epsilon_generator(config.in_dim, config.n_classes, config.intermediate, epsilon)
-        self.generator2 = epsilon_generator(config.in_dim, config.n_classes, config.intermediate, epsilon)
-        self.generator3 = epsilon_generator(config.in_dim, config.n_classes, config.intermediate, epsilon)
-        self.out = tfkl.Dense(config.n_classes, activation='softmax')
-    def call(self, input_tensor):
-        gen1 = self.generator1(input_tensor)
-        gen2 = self.generator2(input_tensor)
-        gen3 = self.generator3(input_tensor)
 
-        intermediate = tf.math.reduce_mean([gen1, gen2, gen3], axis=0)
-        return self.out(intermediate)
-
-class epsilon_5_model(tfk.Model):
-    def __init__(self, config : generator_config, epsilon=0.05, name='') -> None:
-        super(epsilon_5_model, self).__init__(name=name)
-        self.generator1 = epsilon_generator(config.in_dim, config.n_classes, config.intermediate, epsilon)
-        self.generator2 = epsilon_generator(config.in_dim, config.n_classes, config.intermediate, epsilon)
-        self.generator3 = epsilon_generator(config.in_dim, config.n_classes, config.intermediate, epsilon)
-        self.generator4 = epsilon_generator(config.in_dim, config.n_classes, config.intermediate, epsilon)
-        self.generator5 = epsilon_generator(config.in_dim, config.n_classes, config.intermediate, epsilon)
-        self.out = tfkl.Dense(config.n_classes, activation='softmax')
-    def call(self, input_tensor):
-        gen1 = self.generator1(input_tensor)
-        gen2 = self.generator2(input_tensor)
-        gen3 = self.generator3(input_tensor)
-        gen4 = self.generator4(input_tensor)
-        gen5 = self.generator5(input_tensor)
-
-        intermediate = tf.math.reduce_mean([gen1, gen2, gen3, gen4, gen5], axis=0)
-        return self.out(intermediate)
+        

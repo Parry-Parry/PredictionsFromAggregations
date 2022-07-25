@@ -47,7 +47,7 @@ class dense_noise_generator(tfkl.Layer):
     :param int out_shape: Size of original input / output
     """
     def __init__(self, out_shape : int, n_generator=100, noise_shape=100, latent_dim=512) -> None:
-        super(densenoise__generator, self).__init__()
+        super(dense_noise_generator, self).__init__()
         self.generators = [_dense_generator(noise_shape, latent_dim, out_shape, i) for i in range(n_generator)]
     def call(self, inputs):
         return tf.concat([x(inputs) for x in self.generators], axis=0)
