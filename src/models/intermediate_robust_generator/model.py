@@ -11,9 +11,10 @@ from src.models.layers.custom_layers import generator_block
 def distance_loss(y_true, weights, interim_preds):
     cce = tfk.losses.CategoricalCrossentropy()
     n = len(weights)
+
+    print("y true: {}, y preds: {}".format(y_true, interim_preds))
     
     norms = [tf.norm(weights[i] - weights[j]) for i in range(n) for j in range(n)]
-    print(len(norms))
     weight_sum = tf.reduce_sum(norms, name="Norm of Weight Diff") 
     cce_sum = tfm.reduce_sum(tf.map_fn(lambda x : cce(y_true, x), elems=interim_preds), axis=0, name="Sum of CE over Generated Preds")
 
