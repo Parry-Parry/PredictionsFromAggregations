@@ -7,6 +7,7 @@ from collections import defaultdict
 
 from src.models.layers.custom_layers import convnet
 from src.models.lstm_based.base_model import n_epsilon_model
+from src.models.losses import *
 from src.models.structures import *
 from src.models.intermediate_robust_generator.model import *
 from src.models.lstm_based.helper import retrieve_dataset, aggregate
