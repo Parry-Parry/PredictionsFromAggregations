@@ -112,7 +112,7 @@ def main(args):
         model = n_epsilon_model(config)
 
         optim = tfk.optimizers.Adam(learning_rate=args.lr)
-        loss_fn = tfk.losses.CategoricalCrossentropy()
+        loss_fn = ensemble_loss
 
         train_acc_store = defaultdict(list)
         history = defaultdict(list)
