@@ -11,8 +11,8 @@ def distance_loss(y_true, weights, interim_preds):
     norm_min = norms[tfm.argmin(norms)]
 
     minmax = lambda x : (x - norm_min) / (norm_max - norm_min)
-    norms = tf.map_fn(minmax, elems=tf.constant(norms, dtype=tf.float32))
 
+    norms = [minmax(norm) for norm in norms]
     weight_sum = tf.reduce_sum(norms, name="Norm of Weight Diff") 
     cce_sum = tfm.reduce_sum(tf.map_fn(lambda x : cce(y_true, x), elems=interim_preds), axis=0, name="Sum of CE over Generated Preds")
 
