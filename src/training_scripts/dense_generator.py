@@ -34,7 +34,6 @@ parser.add_argument('--lr', type=float, default=0.0001, help='Learning Rate, Def
 
 BUFFER = 2048
 BATCH_SIZE = 128
-EPSILON = [0.001, 0.005, 0.01, 0.05, 0.1]
 
 def main(args):
     args = parser.parse_args()
