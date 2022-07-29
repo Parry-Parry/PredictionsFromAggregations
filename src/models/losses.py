@@ -20,7 +20,7 @@ def distance_loss(y_true, weights, interim_preds):
     #return cce_sum 
     return cce_sum - weight_sum
 
-def ensemble_loss(y_true, interim_preds):
+def ensemble_loss(y_true, weights, interim_preds):
     cce = tfk.losses.CategoricalCrossentropy()
 
     return tfm.reduce_sum(tf.map_fn(lambda x : cce(y_true, x), elems=interim_preds), axis=0, name="Sum of CE over Generated Preds")
