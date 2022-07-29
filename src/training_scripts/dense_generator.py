@@ -143,8 +143,7 @@ def main(args):
     for x_batch, y_batch in test_set:
         test_pred = model(x_batch, training=False)
         test_acc_metric.update_state(y_batch, test_pred)
-        for x, y in zip(y_batch, test_pred):
-            print(x, y)
+        
     test_acc = test_acc_metric.result()
 
     logger.info("Test Accuracy: {}".format(test_acc))
